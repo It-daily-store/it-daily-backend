@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const checkPermission_1 = __importDefault(require("../../middleware/checkPermission"));
+const roles_interface_1 = require("../roles/roles.interface");
+const deal_controller_1 = require("./deal.controller");
+const validateRequest_1 = require("../../middleware/validateRequest");
+const deals_validation_1 = require("./deals.validation");
+const router = (0, express_1.Router)();
+router.post("/create", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "create"), (0, validateRequest_1.validateRequest)(deals_validation_1.DealValidationSchema.createDealSchema), deal_controller_1.DealsController.createDeal);
+router.put("/add-products/:id", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "update"), deal_controller_1.DealsController.addProductsToDeal);
+router.get("/get-all", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "read"), deal_controller_1.DealsController.getAllDeals);
+router.get("/get-by-id/:id", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "read"), deal_controller_1.DealsController.getDealById);
+router.get("/get-products/:id", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "read"), deal_controller_1.DealsController.getProductsForDeal);
+router.patch("/:id", (0, checkPermission_1.default)(roles_interface_1.EAppFeatures.deals, "update"), deal_controller_1.DealsController.updateDeal);
+const DealRoutes = router;
+exports.default = DealRoutes;
