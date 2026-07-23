@@ -12,25 +12,22 @@ const app: Application = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://192.168.0.103:3000",
-      "http://localhost:4000",
-      "https://www.admin.gadgetgrid.live",
-      "https://admin.gadgetgrid.live",
-      "https://gadgetgrid.live",
-      "https://www.gadgetgrid.live",
-      "https://gadget-grid-admin-v2-fork.vercel.app",
-      "https://gadget-grid-homepage-fork.vercel.app",
+      "http://localhost:6001",
+      "http://192.168.0.103:6001",
+      "http://localhost:7000",
+      "https://www.admin.itdaily.store",
+      "https://admin.itdaily.store",
+      "https://itdaily.store",
+      "https://www.itdaily.store",
     ],
     credentials: true,
-  })
+  }),
 );
 
 app.use(
   "/payment/webhook",
   express.raw({ type: "application/json" }),
-  paymentWebhook
+  paymentWebhook,
 );
 
 app.use(express.json());
