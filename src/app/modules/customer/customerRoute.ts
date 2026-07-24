@@ -8,7 +8,7 @@ import { SettingsController } from "../settings/settings.controller";
 const router = Router();
 
 router.get("/category/get-all", customerController.getCategories);
-router.get("/category/:slug", customerController.getCategoryDataBySlug);
+router.get("/category/single/:slug", customerController.getCategoryDataBySlug);
 router.get("/category/static-slugs", customerController.getStaticCategorySlugs);
 router.get("/category/get-featured", customerController.getFeaturedCategories);
 router.get("/banner/get-banner/:id", BannerController.getBanner);

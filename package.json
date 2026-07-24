@@ -11,7 +11,10 @@
     "build": "tsc",
     "build:prod": "env-cmd -f .env.prod tsc",
     "start": "node dist/server.js",
-    "start:prod": "env-cmd -f .env.prod node dist/server.js"
+    "start:prod": "env-cmd -f .env.prod node dist/server.js",
+    "redis:up": "docker run -d --name redis-6380 -p 6380:6380 redis redis-server --port 6380",
+    "redis:stop": "docker stop redis-6380",
+    "redis:rm": "docker rm redis-6380"
   },
   "author": "",
   "license": "ISC",
