@@ -1,4 +1,4 @@
-import { ConnectionOptions, Queue, Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 import { RedisKeys } from "../../interface/common";
 import { setProductsToRedis, updateSigleProductToRedis } from "./product.redis";
 import { Types } from "mongoose";

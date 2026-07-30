@@ -4,7 +4,6 @@ import AppError from "../../errors/AppError";
 import { User } from "../user/user.model";
 import { TLoginCredentials } from "./auth.interface";
 import { createToken } from "./auth.utils";
-import { sendEmail } from "../../utils/sendEmail";
 import bcrypt from "bcrypt";
 import varifyToken from "../../utils/verifyToken";
 import mongoose, { Types } from "mongoose";

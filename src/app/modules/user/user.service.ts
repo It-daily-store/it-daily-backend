@@ -1,4 +1,4 @@
-import mongoose, { startSession, Types } from "mongoose";
+import mongoose, { startSession } from "mongoose";
 import { TUser } from "./user.interface";
 import { User } from "./user.model";
 

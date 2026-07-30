@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { TUser } from "../user/user.interface";
 import { Chat } from "./chat.model";
+import { TChat } from "./chat.interface";
 
 const createChatIntoDB = async (payload: TChat, user: TUser) => {
   if (!user) {

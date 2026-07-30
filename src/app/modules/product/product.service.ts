@@ -6,13 +6,12 @@ import {
   TDiscount,
   THeader,
   TProduct,
-  TProductCategory,
 } from "./product.interface";
 import { Product } from "./product.model";
 import { TUser } from "../user/user.interface";
 import slugify from "slugify";
 import Papa from "papaparse";
-import fs, { appendFile } from "fs";
+import fs from "fs";
 import path from "path";
 import { Category } from "../category/category.model";
 import {
@@ -46,11 +45,8 @@ import { TCategory } from "../category/category.interface";
 import { getProductsFromRedis } from "./product.redis";
 import sift from "sift";
 import { ProductJobName, productQueue } from "./product.queue";
-import redisClient from "../../../redis";
-import { RedisKeys } from "../../interface/common";
 import { TProductDetailsCategory } from "../productDetailsCategory/productDetailsCategory.interface";
 import Settings from "../settings/settings.model";
-import { TProductFilter } from "../productFilters/filter.interface";
 
 const createProductIntoDB = async (
   payload: TProduct,
@@ -594,12 +590,12 @@ const bulkUploadToDB = async (
   }
 
   try {
-    const bulkResult = await BulkUpload.create({
+    await BulkUpload.create({
       withError,
       successData,
       createdBy: user._id,
     });
-  } catch (err) {
+  } catch {
     // throw new AppError(httpStatus.CONFLICT, 'Failed to store bulk upload history')
   }
 
@@ -1038,9 +1034,9 @@ const getFiltersByCategoryFromDB = async (slug: string) => {
 
   const commonFilters = extractCommonFilters(allCategoryProducts);
 
-  let filters = [];
+  const filters = [];
 
-  for (let filter of commonFilters) {
+  for (const filter of commonFilters) {
     const data = await ProductFilter.findById(filter.filter);
     if (data) {
       filters.push(data);
@@ -1061,7 +1057,7 @@ const getSearchProductsFromDB = async (query: Record<string, unknown>) => {
   const filters: any = {};
   const catFilters: any = {};
   const brandFilters: any = {};
-  let sort: any = { createdAt: -1 };
+  const sort: any = { createdAt: -1 };
 
   const getFrom = query.getFrom ? (query.getFrom as string)?.split(",") : [];
 

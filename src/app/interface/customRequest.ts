@@ -1,4 +1,3 @@
-import { JwtPayload } from "jsonwebtoken";
 import { TUser } from "../modules/user/user.interface";
 import { Types } from "mongoose";
 

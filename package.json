@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint src --ignore-path .eslintignore --ext .ts",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "seed": "ts-node src/scripts/seed.ts",
     "build": "tsc",
     "build:prod": "env-cmd -f .env.prod tsc",
@@ -60,6 +61,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.8.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^15.8.0",
     "husky": "^9.1.6",
     "nodemon": "^3.1.4",

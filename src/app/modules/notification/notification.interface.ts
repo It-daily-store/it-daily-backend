@@ -1,5 +1,4 @@
 import { Types } from "mongoose";
-import { EAppFeatures } from "../roles/roles.interface";
 
 export type TNotification = {
   userTo: Types.ObjectId;

@@ -3,7 +3,6 @@
 
 import { Server } from "socket.io";
 import { Server as htttpServer } from "http";
-import { NextFunction, Request, Response } from "express";
 
 let io: Server;
 

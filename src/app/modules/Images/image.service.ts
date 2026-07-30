@@ -52,7 +52,7 @@ const uploadImageIntoDB = async (
 
     const uploadedImages: UploadApiResponse[] = await Promise.all(
       uploadImages
-    ).catch((err) => {
+    ).catch(() => {
       throw new AppError(httpStatus.CONFLICT, "upload failed");
     });
 
@@ -133,7 +133,7 @@ const deleteImagesFromDB = async ({
     await session.endSession();
 
     return deleteFromBD;
-  } catch (err) {
+  } catch {
     await session.abortTransaction();
     await session.endSession();
     throw new AppError(httpStatus.CONFLICT, "Delete failed");

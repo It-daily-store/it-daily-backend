@@ -3,9 +3,8 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { TUser } from "./user.interface";
 import { UserServices } from "./user.service";
-import { UserValidations } from "./user.validation";
 
-const createUser = catchAsync(async (req, res, next) => {
+const createUser = catchAsync(async (req, res, _next) => {
   const admin: TUser = req.body;
 
   const result = await UserServices.createAdminIntoDB(admin);
@@ -33,7 +32,6 @@ const getAllUsers = catchAsync(async (req, res) => {
 
 const getSingleUser = catchAsync(async (req, res) => {
   const id = req.params.id;
-  const query = req.query;
   const result = await UserServices.getSingleUserFromDB(id);
 
   sendResponse(res, {

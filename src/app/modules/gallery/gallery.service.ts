@@ -6,7 +6,7 @@ import { Image } from "../Images/image.model";
 
 const createGalleryFolderIntoDB = async (payload: TGalleryFolder) => {
 
-    let parent_id: string | null = payload.parent_id || null
+    const parent_id: string | null = payload.parent_id || null
 
     if (payload.parent_id) {
         const exist = await GalleryFolder.findById(payload.parent_id)

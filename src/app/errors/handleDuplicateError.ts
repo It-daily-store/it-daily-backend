@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { TErrorSourse, TGenericErrorResponse } from "../interface/error.interface";
 import config from "../config";
 

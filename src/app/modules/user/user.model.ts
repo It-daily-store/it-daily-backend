@@ -2,7 +2,6 @@ import { model, Schema } from "mongoose";
 import { TAddress, TName, TUser, TUserModel } from "./user.interface";
 import bcrypt from "bcrypt";
 import config from "../../config";
-import { boolean } from "zod";
 
 const NameSchema = new Schema<TName>({
   firstName: { type: String, required: [true, "First name is required"] },

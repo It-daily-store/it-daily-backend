@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { TCategory, TUpdateCategory } from "./category.interface";
 import { Category } from "./category.model";
 import AppError from "../../errors/AppError";

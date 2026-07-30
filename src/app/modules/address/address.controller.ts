@@ -3,8 +3,11 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AddressService } from "./address.service";
 
-const createAddress = catchAsync(async (req, res) => {
-  const data = req.body;
+// NOTE: this handler is not wired up in address.route.ts (no route references it)
+// and does not do anything yet — looks like dead/incomplete code. Left in place
+// but made lint-clean; needs a human decision on whether to implement or remove it.
+const _createAddress = catchAsync(async (req, _res) => {
+  const _data = req.body;
 });
 
 const getMyAddresses = catchAsync(async (req, res) => {

@@ -1,5 +1,4 @@
 import { IOrder } from "../modules/order/order.interface";
-import { TUser } from "../modules/user/user.interface";
 
 export const generateOrderEmailHTML = (order: IOrder) => {
   // Sample data based on your image and schema

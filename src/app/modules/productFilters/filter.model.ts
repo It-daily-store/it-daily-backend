@@ -53,7 +53,7 @@ FilterSchema.pre("save", async function (next) {
       .sort({ filterId: -1 }) // Sort descending to get highest filterId
       .select("filterId");
 
-    let filterId = lastFilter ? lastFilter.filterId + 1 : 1;
+    const filterId = lastFilter ? lastFilter.filterId + 1 : 1;
 
     if (filterId > maxFilterId) {
       throw new Error(

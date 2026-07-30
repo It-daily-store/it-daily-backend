@@ -1,12 +1,11 @@
-import { FilterQuery, Query, Types } from "mongoose";
-import { Category } from "./category.model";
+import { FilterQuery } from "mongoose";
 import { TCategory } from "./category.interface";
 
 export const generateCategoryTree = (
   categories: FilterQuery<TCategory[]>,
   parent_id = null
 ) => {
-  let categoryTree: TCategory[] = [];
+  const categoryTree: TCategory[] = [];
 
   let filterCategories;
 

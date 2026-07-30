@@ -4,8 +4,8 @@ export interface TCategory {
   parent_id: string;
   product_details_categories: string[];
   subCategories?: TCategory[];
-  isDeleted: Boolean;
-  isFeatured: Boolean;
+  isDeleted: boolean;
+  isFeatured: boolean;
   image: string;
   description?: string;
   slug: string;

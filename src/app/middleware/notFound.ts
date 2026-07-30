@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 import { NextFunction, Request, Response } from 'express'
 import httpStatus from 'http-status'
 import { TGenericErrorResponse } from '../interface/error.interface'
 
-const notFound = (req: Request, res: Response, next: NextFunction) => {
+const notFound = (req: Request, res: Response, _next: NextFunction) => {
 
   const errorResponse: TGenericErrorResponse = {
     success: false,

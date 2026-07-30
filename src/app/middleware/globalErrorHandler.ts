@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import httpStatus from "http-status";
-import { ZodError, ZodIssue } from "zod";
-import { TErrorSourse, TGenericErrorResponse } from "../interface/error.interface";
+import { ZodError } from "zod";
+import { TErrorSourse } from "../interface/error.interface";
 import { handleZodError } from "../errors/handleZodError";
 import { handleCastError } from "../errors/handleCastError";
 import handleDuplicateError from "../errors/handleDuplicateError";
@@ -11,13 +10,13 @@ import config from "../config";
 import mongoose from "mongoose";
 import { handleValidationError } from "../errors/handleValidationError";
 
-export const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  let message = err.message || "Something went wrong";
-  let statusCode = err.statusCode || 500;
+export const globalErrorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+  const message = err.message || "Something went wrong";
+  const statusCode = err.statusCode || 500;
 
   console.log(err)
 
-  let errorSources: TErrorSourse = [
+  const errorSources: TErrorSourse = [
     {
       path: "",
       message: "Something went wrong",

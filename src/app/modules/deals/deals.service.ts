@@ -72,7 +72,7 @@ const addProductsToDealToDB = async (
     throw new AppError(httpStatus.CONFLICT, "Found no new products to add");
   }
 
-  let products: IDeal["products"] = [];
+  const products: IDeal["products"] = [];
   let notFoundProducts = 0;
 
   const redisData = await redisClient.get(RedisKeys.products);

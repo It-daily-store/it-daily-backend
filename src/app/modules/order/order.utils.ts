@@ -1,4 +1,4 @@
-import { Model, Query } from "mongoose";
+import { Query } from "mongoose";
 import { TProduct } from "../product/product.interface";
 
 export const calculateDiscountPrice = (

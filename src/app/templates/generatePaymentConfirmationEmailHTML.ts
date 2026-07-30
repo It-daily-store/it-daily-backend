@@ -1,8 +1,12 @@
 import { IOrder } from "../modules/order/order.interface";
-import { TUser } from "../modules/user/user.interface";
-import { sendEmail } from "../utils/sendEmail";
 
-const generatePaymentConfirmationEmailHTML = (order: IOrder) => {
+// NOTE: not currently imported/used anywhere in the codebase. src/app/queues/email.queue.ts
+// handles EmailJobName.sendPaymentConfirmationEmail by calling generateOrderEmailHTML(order)
+// instead of this dedicated template (looks like a copy/paste bug from the
+// sendOrderConfirmationEmail branch above it, which is itself duplicated). Exporting this to
+// make it lint-clean, matching the sibling generateOrderEmailHTML pattern — flagging for a
+// human decision on whether to wire it up in email.queue.ts or remove it.
+export const generatePaymentConfirmationEmailHTML = (order: IOrder) => {
   const company = {
     logo: "",
     email: "gadgetGrid@gmail.com",

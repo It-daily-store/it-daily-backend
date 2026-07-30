@@ -43,13 +43,9 @@ export const buildNotifications = async ({
 
 export const addNotifications = async ({
   notifications,
-  rooms,
-  ignoreRooms,
   userFrom,
 }: {
   notifications: TNotification[];
-  rooms?: string[];
-  ignoreRooms?: string[];
   userFrom?: TUser;
 }) => {
   const io = getIO();
