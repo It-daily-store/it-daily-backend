@@ -1,6 +1,4 @@
-import jwt from "jsonwebtoken";
-import { TName } from "../user/user.interface";
-import config from "../../config";
+import jwt, { SignOptions } from "jsonwebtoken";
 
 type TCreateToken = {
   payload: { email: string; otpCode?: string };
@@ -9,5 +7,7 @@ type TCreateToken = {
 };
 
 export const createToken = ({ payload, secret, expiresIn }: TCreateToken) => {
-  return jwt.sign(payload, secret, { expiresIn });
+  return jwt.sign(payload, secret, {
+    expiresIn: expiresIn as SignOptions["expiresIn"],
+  });
 };
