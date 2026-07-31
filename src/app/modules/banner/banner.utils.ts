@@ -1,3 +1,4 @@
+import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 
@@ -27,5 +28,36 @@ export const assertTreeDepth = (root: unknown): void => {
         stack.push({ node: child, depth: depth + 1 });
       }
     }
+  }
+};
+
+/**
+ * Express middleware wrapping `assertTreeDepth`. Must be wired into the
+ * `/create` and `/update/:id` route chains BEFORE `validateRequest` (the
+ * Zod parse), not after it — the whole point of the iterative depth guard
+ * is to reject pathologically deep payloads cheaply, on the raw req.body,
+ * before the recursive z.lazy() descent ever gets to run on them. Putting
+ * this after validateRequest (e.g. inside the controller) defeats that:
+ * Zod's recursive parser would still walk the entire adversarial tree
+ * first on every request, risking a stack overflow, and only reject the
+ * payload afterwards.
+ */
+export const checkBreakpointsDepth = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const breakpoints = req.body?.breakpoints as
+      | Record<string, unknown>
+      | undefined;
+    if (breakpoints) {
+      assertTreeDepth(breakpoints.laptop);
+      assertTreeDepth(breakpoints.tablet);
+      assertTreeDepth(breakpoints.mobile);
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
 };

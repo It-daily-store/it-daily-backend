@@ -2,18 +2,15 @@ import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { BannerTemplateServices } from "./banner.service";
-import { assertTreeDepth } from "./banner.utils";
 
-const assertBreakpointsDepth = (breakpoints?: Record<string, unknown>) => {
-  if (!breakpoints) return;
-  assertTreeDepth(breakpoints.laptop);
-  assertTreeDepth(breakpoints.tablet);
-  assertTreeDepth(breakpoints.mobile);
-};
+// Note: the depth guard (assertTreeDepth / checkBreakpointsDepth) runs as
+// route middleware in banner.routes.ts, BEFORE validateRequest's Zod parse
+// — not here in the controller. By the time a request reaches these
+// controller actions, both the depth guard and full Zod validation have
+// already passed.
 
 const createTemplate = catchAsync(async (req, res) => {
   const { userData } = req.user;
-  assertBreakpointsDepth(req.body.breakpoints);
 
   const result = await BannerTemplateServices.createTemplateIntoDB(
     req.body,
@@ -53,8 +50,6 @@ const getTemplateById = catchAsync(async (req, res) => {
 });
 
 const updateTemplate = catchAsync(async (req, res) => {
-  assertBreakpointsDepth(req.body.breakpoints);
-
   const result = await BannerTemplateServices.updateTemplateIntoDB(
     req.params.id,
     req.body

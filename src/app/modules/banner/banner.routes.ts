@@ -5,6 +5,7 @@ import { EAppFeatures } from "../roles/roles.interface";
 import { validateRequest } from "../../middleware/validateRequest";
 import { BannerTemplateValidationSchema } from "./banner.validation";
 import { BannerTemplateController } from "./banner.controller";
+import { checkBreakpointsDepth } from "./banner.utils";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.post(
   "/create",
   validateAuth(),
   checkPermission(EAppFeatures.banner, "create"),
+  checkBreakpointsDepth,
   validateRequest(BannerTemplateValidationSchema.createTemplateValidationSchema),
   BannerTemplateController.createTemplate
 );
@@ -32,6 +34,7 @@ router.patch(
   "/update/:id",
   validateAuth(),
   checkPermission(EAppFeatures.banner, "update"),
+  checkBreakpointsDepth,
   validateRequest(BannerTemplateValidationSchema.updateTemplateValidationSchema),
   BannerTemplateController.updateTemplate
 );
