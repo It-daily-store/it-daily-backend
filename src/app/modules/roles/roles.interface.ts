@@ -21,6 +21,7 @@ export enum EAppFeatures {
   deals = "deals",
   settings = "settings",
   orders = "orders",
+  banner = "banner",
 }
 
 export interface TPermission {
