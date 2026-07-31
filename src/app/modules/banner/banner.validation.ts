@@ -1,49 +1,83 @@
 import { z } from "zod";
 
-const imageSlotSchema = z.object({
-  mobile: z.string({ required_error: "Mobile image is required" }).min(1, "Mobile image is required"),
-  tablet: z.string({ required_error: "Tablet image is required" }).min(1, "Tablet image is required"),
-  laptop: z.string({ required_error: "Laptop image is required" }).min(1, "Laptop image is required"),
-});
+// Only allow absolute http(s) URLs or relative paths starting with "/".
+// This blocks dangerous schemes (javascript:, data:, etc.) from being
+// persisted into the Mixed `data` field and later served verbatim to
+// every visitor of the public homepage.
+const safeUrlSchema = (fieldLabel: string) =>
+  z
+    .string()
+    .min(1, `${fieldLabel} is required`)
+    .refine((v) => /^(https?:\/\/|\/)/.test(v), {
+      message: `${fieldLabel} must be an absolute http(s) URL or a relative path starting with /`,
+    });
 
-const carouselSlideSchema = z.object({
-  images: imageSlotSchema,
-  headline: z.string().optional(),
-  subtext: z.string().optional(),
-  ctaLabel: z.string().optional(),
-  ctaLink: z.string().optional(),
-});
+const safeOptionalUrlSchema = (fieldLabel: string) =>
+  z
+    .string()
+    .refine((v) => v === "" || /^(https?:\/\/|\/)/.test(v), {
+      message: `${fieldLabel} must be an absolute http(s) URL or a relative path starting with /`,
+    })
+    .optional();
 
-const updateCarouselValidationSchema = z.object({
-  slides: z.array(carouselSlideSchema).min(1, "At least one slide is required"),
-});
+const imageSlotSchema = z
+  .object({
+    mobile: safeUrlSchema("Mobile image"),
+    tablet: safeUrlSchema("Tablet image"),
+    laptop: safeUrlSchema("Laptop image"),
+  })
+  .strict();
 
-const splitGridTextTileSchema = z.object({
-  images: imageSlotSchema,
-  headline: z.string().optional(),
-  subtext: z.string().optional(),
-  ctaLabel: z.string().optional(),
-  ctaLink: z.string().optional(),
-});
+const carouselSlideSchema = z
+  .object({
+    images: imageSlotSchema,
+    headline: z.string().optional(),
+    subtext: z.string().optional(),
+    ctaLabel: z.string().optional(),
+    ctaLink: safeOptionalUrlSchema("CTA link"),
+  })
+  .strict();
 
-const splitGridLinkTileSchema = z.object({
-  images: imageSlotSchema,
-  link: z.string().optional(),
-});
+const updateCarouselValidationSchema = z
+  .object({
+    slides: z.array(carouselSlideSchema).min(1, "At least one slide is required"),
+  })
+  .strict();
 
-const updateSplitGridValidationSchema = z.object({
-  main: splitGridTextTileSchema,
-  top: splitGridLinkTileSchema,
-  bottom: splitGridLinkTileSchema,
-});
+const splitGridTextTileSchema = z
+  .object({
+    images: imageSlotSchema,
+    headline: z.string().optional(),
+    subtext: z.string().optional(),
+    ctaLabel: z.string().optional(),
+    ctaLink: safeOptionalUrlSchema("CTA link"),
+  })
+  .strict();
 
-const updateSideBannerValidationSchema = z.object({
-  images: imageSlotSchema,
-  headline: z.string().optional(),
-  subtext: z.string().optional(),
-  ctaLabel: z.string().optional(),
-  ctaLink: z.string().optional(),
-});
+const splitGridLinkTileSchema = z
+  .object({
+    images: imageSlotSchema,
+    link: safeOptionalUrlSchema("Link"),
+  })
+  .strict();
+
+const updateSplitGridValidationSchema = z
+  .object({
+    main: splitGridTextTileSchema,
+    top: splitGridLinkTileSchema,
+    bottom: splitGridLinkTileSchema,
+  })
+  .strict();
+
+const updateSideBannerValidationSchema = z
+  .object({
+    images: imageSlotSchema,
+    headline: z.string().optional(),
+    subtext: z.string().optional(),
+    ctaLabel: z.string().optional(),
+    ctaLink: safeOptionalUrlSchema("CTA link"),
+  })
+  .strict();
 
 export const BannerValidationSchema = {
   updateCarouselValidationSchema,
