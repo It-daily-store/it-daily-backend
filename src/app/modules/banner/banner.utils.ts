@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
+import { MAX_TREE_DEPTH } from "./banner.constant";
 
 /**
  * Deliberately iterative (explicit stack), not recursive: this runs
@@ -15,15 +16,15 @@ export const assertTreeDepth = (root: unknown): void => {
   while (stack.length) {
     const { node, depth } = stack.pop()!;
 
-    if (depth > 8) {
+    if (depth > MAX_TREE_DEPTH) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Layout tree exceeds max depth of 8"
+        `Layout tree exceeds max depth of ${MAX_TREE_DEPTH}`
       );
     }
 
     const n = node as { type?: string; children?: unknown[] };
-    if (n && n.type === "split" && Array.isArray(n.children)) {
+    if (n && Array.isArray(n.children)) {
       for (const child of n.children) {
         stack.push({ node: child, depth: depth + 1 });
       }

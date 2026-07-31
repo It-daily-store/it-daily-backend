@@ -5,7 +5,7 @@ import { z } from "zod";
 // persisted into the Mixed `breakpoints` field and later served verbatim
 // to every unauthenticated visitor of the public `/get/:id` endpoint.
 const safeUrlSchema = (label: string) =>
-  z.string().refine((v) => v === "" || /^(https?:\/\/|\/)/.test(v), {
+  z.string().refine((v) => v === "" || /^(https?:\/\/|\/(?!\/))/.test(v), {
     message: `${label} must be an absolute http(s) URL or a relative path starting with /`,
   });
 
@@ -63,7 +63,7 @@ const imageLeafDataSchema = z
     }),
     alt: z.string().optional(),
     link: safeUrlSchema("Link").optional(),
-    overlays: z.array(overlaySchema).default([]),
+    overlays: z.array(overlaySchema),
   })
   .strict();
 
@@ -75,7 +75,7 @@ const carouselSlideSchema = z
     }),
     alt: z.string().optional(),
     link: safeUrlSchema("Link").optional(),
-    overlays: z.array(overlaySchema).default([]),
+    overlays: z.array(overlaySchema),
   })
   .strict();
 
@@ -123,25 +123,33 @@ const panelNodeSchema: z.ZodType<TPanelNodeInput, z.ZodTypeDef, unknown> = z.laz
   ])
 );
 
-const breakpointsSchema = z.object({
-  laptop: panelNodeSchema,
-  tablet: panelNodeSchema,
-  mobile: panelNodeSchema,
-});
+const breakpointsSchema = z
+  .object({
+    laptop: panelNodeSchema,
+    tablet: panelNodeSchema,
+    mobile: panelNodeSchema,
+  })
+  .strict();
 
-const createTemplateValidationSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-  breakpoints: breakpointsSchema,
-});
+const createTemplateValidationSchema = z
+  .object({
+    name: z.string().min(1, "Template name is required"),
+    breakpoints: breakpointsSchema,
+  })
+  .strict();
 
-const updateTemplateValidationSchema = z.object({
-  name: z.string().min(1).optional(),
-  breakpoints: breakpointsSchema.optional(),
-});
+const updateTemplateValidationSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    breakpoints: breakpointsSchema.optional(),
+  })
+  .strict();
 
-const renameTemplateValidationSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-});
+const renameTemplateValidationSchema = z
+  .object({
+    name: z.string().min(1, "Template name is required"),
+  })
+  .strict();
 
 export const BannerTemplateValidationSchema = {
   createTemplateValidationSchema,
