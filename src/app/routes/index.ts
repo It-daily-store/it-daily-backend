@@ -19,6 +19,7 @@ import { AddressRoutes } from "../modules/address/address.route";
 import DealRoutes from "../modules/deals/deal.route";
 import SettingsRoute from "../modules/settings/settings.route";
 import dashboardRoutes from "../modules/dashboard/dashboard.route";
+import { BannerRoutes } from "../modules/banner/banner.routes";
 
 const router = Router();
 
@@ -45,10 +46,11 @@ const moduleRoutes = [
   { path: "/deal", route: DealRoutes },
   { path: "/settings", route: SettingsRoute },
   { path: "/dashboard", route: dashboardRoutes },
+  { path: "/banner", route: BannerRoutes },
 ];
 
 moduleRoutes.forEach((route) => {
-  if (route.path === "/auth" || route.path === "/customer") {
+  if (route.path === "/auth" || route.path === "/customer" || route.path === "/banner") {
     router.use(route.path, route.route);
   } else {
     router.use(route.path, validateAuth(), route.route);
