@@ -1,38 +1,40 @@
-import mongoose, { Schema, Document } from "mongoose";
+import { model, Schema } from "mongoose";
+import { TBannerTemplate, TBannerTemplateModel } from "./banner.interface";
 
-interface ISlider {
-  content: string;
-  link: string;
-}
-
-interface IGridSliderTemplate extends Document {
-  id: "gridSlider";
-  active: boolean;
-  data: {
-    sliders: ISlider[];
-    right_top: ISlider;
-    right_bottom: ISlider;
-  };
-}
-
-const SliderSchema: Schema = new Schema({
-  content: { type: String, required: true },
-  link: { type: String, required: true },
-});
-
-const GridSliderTemplateSchema: Schema = new Schema({
-  id: { type: String, enum: ["gridSlider"], required: true },
-  active: { type: Boolean, default: true },
-  data: {
-    sliders: { type: [SliderSchema], required: true },
-    right_top: { type: SliderSchema, required: true },
-    right_bottom: { type: SliderSchema, required: true },
+const bannerTemplateSchema = new Schema<TBannerTemplate>(
+  {
+    name: { type: String, required: [true, "Template name is required"] },
+    slug: { type: String, required: true },
+    breakpoints: {
+      laptop: { type: Schema.Types.Mixed, required: true },
+      tablet: { type: Schema.Types.Mixed, required: true },
+      mobile: { type: Schema.Types.Mixed, required: true },
+    },
+    isDeleted: { type: Boolean, default: false },
+    createdBy: { type: String, required: true, ref: "User" },
   },
-});
-
-const Banner = mongoose.model<IGridSliderTemplate>(
-  "banners",
-  GridSliderTemplateSchema
+  { timestamps: true }
 );
 
-export default Banner;
+// A slug only has to be unique among non-deleted templates, so a name can
+// be reused after its original template is (soft-)deleted.
+bannerTemplateSchema.index(
+  { slug: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+
+bannerTemplateSchema.statics.findActiveById = async function (id: string) {
+  return this.findOne({ _id: id, isDeleted: false });
+};
+
+// Deliberately a NEW collection name ("bannertemplates", Mongoose's
+// default pluralization of "BannerTemplate") rather than reusing the old
+// "banners" collection, which still holds one legacy gridSlider document
+// on main — this avoids any chance of that stale doc surfacing in a
+// find({}) against the new model. The old "banners" collection is orphaned
+// and can be dropped manually in Mongo whenever convenient; it is not
+// read by any code after this change.
+export const BannerTemplate = model<TBannerTemplate, TBannerTemplateModel>(
+  "BannerTemplate",
+  bannerTemplateSchema
+);
