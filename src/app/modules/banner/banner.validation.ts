@@ -58,9 +58,7 @@ const imageLeafDataSchema = z
     id: z.string().min(1),
     type: z.literal("leaf"),
     kind: z.literal("image"),
-    src: safeUrlSchema("Image source").refine((v) => v.length >= 1, {
-      message: "Image is required",
-    }),
+    src: safeUrlSchema("Image source"),
     alt: z.string().optional(),
     link: safeUrlSchema("Link").optional(),
     overlays: z.array(overlaySchema),
@@ -70,9 +68,7 @@ const imageLeafDataSchema = z
 const carouselSlideSchema = z
   .object({
     id: z.string().min(1),
-    src: safeUrlSchema("Slide image").refine((v) => v.length >= 1, {
-      message: "Slide image is required",
-    }),
+    src: safeUrlSchema("Slide image"),
     alt: z.string().optional(),
     link: safeUrlSchema("Link").optional(),
     overlays: z.array(overlaySchema),
