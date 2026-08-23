@@ -1,14 +1,11 @@
 import { startSession } from "mongoose";
 import cloudinary from "../../lib/image/image.config";
-import {
-  DeleteApiResponse,
-  UploadApiErrorResponse,
-  UploadApiResponse,
-} from "cloudinary";
+import { DeleteApiResponse, UploadApiResponse } from "cloudinary";
 import { TImage } from "./image.interface";
 import { Image } from "./image.model";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
+import { TPagination } from "../product/product.interface";
 
 const uploadImageIntoDB = async (
   files: Express.Multer.File[],
@@ -38,16 +35,7 @@ const uploadImageIntoDB = async (
     session.startTransaction();
 
     const uploadImages = files.map((file) => {
-      return cloudinary.uploader.upload(
-        file.path,
-        function (err: UploadApiErrorResponse, result: UploadApiResponse) {
-          if (err) {
-            throw new AppError(httpStatus.CONFLICT, "cloudinary upload failed");
-          }
-
-          return result;
-        }
-      );
+      return cloudinary.uploader.upload(file.path);
     });
 
     const uploadedImages: UploadApiResponse[] = await Promise.all(
@@ -93,11 +81,38 @@ const uploadImageIntoDB = async (
   }
 };
 
-const getAllImagesFromDB = async (parent_id: string | null) => {
+const getAllImagesFromDB = async (
+  parent_id: string | null,
+  search: string | null,
+  page: number,
+  limit: number
+) => {
   const folder = parent_id || null;
 
-  const result = await Image.find({ folder }).sort({ createdAt: 1 });
-  return result;
+  const query: Record<string, unknown> = { folder };
+  if (search) {
+    query.name = { $regex: search, $options: "i" };
+  }
+
+  const pagination: TPagination = {
+    currentPage: page,
+    limit,
+    total: 0,
+  };
+
+  const [result, total] = await Promise.all([
+    Image.find(query)
+      .sort({ createdAt: -1 })
+      .skip((pagination.currentPage - 1) * pagination.limit)
+      .limit(pagination.limit),
+    Image.countDocuments(query),
+  ]);
+
+  pagination.total = total;
+  pagination.totalPage = Math.ceil(total / pagination.limit);
+  pagination.hasMore = pagination.currentPage * pagination.limit < total;
+
+  return { result, pagination };
 };
 
 const deleteImagesFromDB = async ({

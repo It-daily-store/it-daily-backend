@@ -22,14 +22,18 @@ const uploadImage = catchAsync(async (req, res) => {
 const getAllImages = catchAsync(async (req, res) => {
 
     const folder = req.query.folder as string
+    const search = (req.query.search as string) || null
+    const page = req.query.page ? Number(req.query.page) : 1
+    const limit = req.query.limit ? Number(req.query.limit) : 20
 
-    const result = await ImageUploadServices.getAllImagesFromDB(folder)
+    const { result, pagination } = await ImageUploadServices.getAllImagesFromDB(folder, search, page, limit)
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: "Retrived images successfully",
-        data: result
+        data: result,
+        pagination
     })
 })
 
