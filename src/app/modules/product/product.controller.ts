@@ -250,6 +250,7 @@ const getPcBuilderProducts = catchAsync(async (req, res) => {
     data: {
       products: result.products,
       filters: result.filters,
+      part: result.part,
     },
     pagination: result.pagination,
   });

@@ -1207,7 +1207,8 @@ const getPcBuilderProductsFromDB = async (
     ...pcBuilder.peripherals?.parts,
   ];
 
-  const partCategory = allParts?.find((p) => p.id.toString() === id)?.category;
+  const part = allParts?.find((p) => p.id.toString() === id);
+  const partCategory = part?.category;
 
   if (!partCategory) {
     throw new AppError(
@@ -1216,7 +1217,7 @@ const getPcBuilderProductsFromDB = async (
     );
   }
 
-  const categoryQuery = {
+  const categoryQuery: Record<string, unknown> = {
     $or: [
       {
         mainCategory: new ObjectId(partCategory),
@@ -1227,14 +1228,55 @@ const getPcBuilderProductsFromDB = async (
     ],
   };
 
-  const filters = await Product.find(categoryQuery).distinct("filters");
-  const products = await Product.find(categoryQuery)
-    .sort("createdAt")
+  // Same `filter=<filterId>:<optionIds>` contract the category listing uses.
+  const parsedFilters: ParsedFilters = parseFilters(query.filter as any);
+
+  const productQuery = { ...categoryQuery };
+
+  if (Object.keys(parsedFilters).length > 0) {
+    productQuery.$and = Object.entries(parsedFilters).map(
+      ([filterId, optionIds]) => ({
+        filters: {
+          $elemMatch: {
+            filterId: Number(filterId),
+            value: { $in: optionIds.map((optionId) => optionId.toString()) },
+          },
+        },
+      }),
+    );
+  }
+
+  const products = await Product.find(productQuery)
+    .sort("-createdAt")
     .skip(skip)
     .limit(limit);
-  const total = await Product.countDocuments(categoryQuery);
+  const total = await Product.countDocuments(productQuery);
 
-  return { products, filters, pagination: { total, currentPage: page, limit } };
+  // Filter options come from the whole part category, so narrowing never hides
+  // the checkboxes needed to widen the selection again.
+  const allCategoryProducts = await Product.find(categoryQuery)
+    .select("filters")
+    .lean();
+
+  const commonFilters = extractCommonFilters(allCategoryProducts);
+
+  const filters = [];
+
+  for (const filter of commonFilters) {
+    const data = await ProductFilter.findById(filter.filter);
+    if (data) {
+      filters.push(data);
+    }
+  }
+
+  return {
+    products,
+    filters,
+    part: part
+      ? { id: part.id, name: part.name, isRequired: part.isRequired }
+      : undefined,
+    pagination: { total, currentPage: page, limit },
+  };
 };
 
 export const ProductServices = {
