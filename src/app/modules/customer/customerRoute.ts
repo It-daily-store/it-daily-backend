@@ -3,6 +3,7 @@ import { customerController } from "./customerController";
 import { ProductControllers } from "../product/product.controller";
 import { AuthController } from "../auth/auth.controller";
 import { SettingsController } from "../settings/settings.controller";
+import { BannerTemplateController } from "../banner/banner.controller";
 
 const router = Router();
 
@@ -36,5 +37,10 @@ router.post("/login", AuthController.userLogin);
 
 // ==== pc builder ====
 router.get("/settings/pc-builder", SettingsController.getPcBuilder);
+
+// ==== banner ====
+// The storefront hero banner. Reads whichever template an admin marked
+// active; responds 200 with `data: null` when none is.
+router.get("/banner/active", BannerTemplateController.getActiveTemplate);
 
 export const CustomerRoutes = router;

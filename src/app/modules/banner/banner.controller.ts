@@ -49,6 +49,38 @@ const getTemplateById = catchAsync(async (req, res) => {
   });
 });
 
+// Responds 200 with `data: null` when no template is active. See
+// getActiveTemplateFromDB — an unconfigured banner is a normal state, not
+// an error, and the storefront renders nothing for it.
+const getActiveTemplate = catchAsync(async (req, res) => {
+  const result = await BannerTemplateServices.getActiveTemplateFromDB();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result
+      ? "Fetched active banner template successfully"
+      : "No active banner template",
+    data: result,
+  });
+});
+
+const setActiveTemplate = catchAsync(async (req, res) => {
+  const result = await BannerTemplateServices.setActiveTemplateInDB(
+    req.params.id,
+    req.body.is_active
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: req.body.is_active
+      ? "Banner template activated successfully"
+      : "Banner template deactivated successfully",
+    data: result,
+  });
+});
+
 const updateTemplate = catchAsync(async (req, res) => {
   const result = await BannerTemplateServices.updateTemplateIntoDB(
     req.params.id,
@@ -109,6 +141,8 @@ export const BannerTemplateController = {
   createTemplate,
   getAllTemplates,
   getTemplateById,
+  getActiveTemplate,
+  setActiveTemplate,
   updateTemplate,
   renameTemplate,
   duplicateTemplate,

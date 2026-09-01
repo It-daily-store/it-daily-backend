@@ -1,82 +1,33 @@
 import { Model } from "mongoose";
 
-export type TOverlayBase = {
-  id: string;
-  xPercent: number; // 0-100, free-form position (element's CENTER), not a preset anchor
-  yPercent: number; // 0-100
-  widthPercent?: number;
-  rotationDeg?: number;
-  zIndex?: number;
-};
+export type TBreakpointName = "laptop" | "tablet" | "mobile";
 
-export type TTextOverlay = TOverlayBase & {
-  type: "text";
-  text: string;
-  fontSizePx?: number;
-  color?: string;
-  fontWeight?: "normal" | "bold";
-  align?: "left" | "center" | "right";
-};
-
-export type TButtonOverlay = TOverlayBase & {
-  type: "button";
-  label: string;
-  href: string;
-  bgColor?: string;
-  textColor?: string;
-};
-
-export type TOverlay = TTextOverlay | TButtonOverlay;
-
-export type TImageLeafData = {
-  kind: "image";
-  src: string;
-  alt?: string;
-  link?: string;
-  overlays: TOverlay[];
-};
-
-export type TCarouselSlide = {
-  id: string;
-  src: string;
-  alt?: string;
-  link?: string;
-  overlays: TOverlay[]; // per-slide, independent — not shared across the carousel
-};
-
-export type TCarouselLeafData = {
-  kind: "carousel";
-  slides: TCarouselSlide[];
-  autoplayMs?: number;
-  loop?: boolean;
-};
-
-export type TLeafNode = { id: string; type: "leaf" } & (
-  | TImageLeafData
-  | TCarouselLeafData
-);
-
-export type TSplitNode = {
-  id: string;
-  type: "split";
-  direction: "horizontal" | "vertical";
-  sizes: number[];
-  children: TPanelNode[];
-};
-
-export type TPanelNode = TSplitNode | TLeafNode;
-
-export type TBreakpoints = {
-  laptop: TPanelNode;
-  tablet: TPanelNode;
-  mobile: TPanelNode;
-};
+/**
+ * The internal shape of a breakpoint's layout tree (panels, splits,
+ * elements) is owned entirely by the react-bannerkit package, not this
+ * backend. Typing it field-by-field here would couple this module to the
+ * package's exact current version and break on every future field the
+ * package adds or renames — react-bannerkit already handles shape drift
+ * itself via its own client-side normalizeTemplate() repair pass. This
+ * backend only enforces what it actually needs to: a bounded nesting
+ * depth and no unsafe URL scheme anywhere in the tree (see
+ * banner.validation.ts / banner.utils.ts) — everything else passes
+ * through opaquely.
+ */
+export type TBannerBreakpoint = Record<string, unknown>;
 
 export type TBannerTemplate = {
   _id: string;
   name: string;
   slug: string;
-  breakpoints: TBreakpoints;
+  description: string;
+  breakpoints: Record<TBreakpointName, TBannerBreakpoint>;
+  /**
+   * Marks the single template the storefront renders. Exclusive:
+   * activating a template deactivates whichever one held the slot before
+   * it, so this is true for at most one non-deleted document at a time.
+   */
+  is_active: boolean;
   isDeleted: boolean;
   createdBy: string;
 };
