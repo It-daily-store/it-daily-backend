@@ -81,3 +81,7 @@ All success responses go through `sendResponse(res, { success, statusCode, messa
 - Soft delete (`isDeleted: true`) is used instead of actually removing documents across modules (`Category`, `User`, etc.) — always filter `isDeleted: false` in read queries.
 - Real-time UI sync: after create/update/delete, many services emit an event over Socket.IO via `sendSourceSocket` (`src/app/utils/sendSourceSocket.ts`) and write an in-app notification via `notification` module helpers (`buildNotifications`/`addNotifications`), targeting connected admin clients while excluding the acting admin (`ignore: [admin._id]`).
 - Redis-cached read paths (`product`, `deals`) are kept in sync by BullMQ workers defined in the module's `.queue.ts`, triggered on server boot (`src/server.ts`) and on mutation.
+
+## Code comments
+
+Do not comment everywhere. Add a comment only where the code cannot explain itself (a non-obvious workaround, a business rule, a deliberate edge case), and keep it to a single line.

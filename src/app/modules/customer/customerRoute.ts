@@ -4,6 +4,7 @@ import { ProductControllers } from "../product/product.controller";
 import { AuthController } from "../auth/auth.controller";
 import { SettingsController } from "../settings/settings.controller";
 import { BannerTemplateController } from "../banner/banner.controller";
+import { BrandController } from "../brand/brand.controller";
 
 const router = Router();
 
@@ -12,6 +13,10 @@ router.get("/category/single/:slug", customerController.getCategoryDataBySlug);
 router.get("/category/static-slugs", customerController.getStaticCategorySlugs);
 router.get("/category/get-featured", customerController.getFeaturedCategories);
 router.get("/product/get-featured", ProductControllers.getFeaturedProducts);
+router.get("/product/new-arrivals", ProductControllers.getNewArrivals);
+router.get("/product/best-sellers", ProductControllers.getBestSellers);
+router.get("/product/by-brand/:brandId", ProductControllers.getProductsByBrand);
+router.get("/brand/get-all", BrandController.getStorefrontBrands);
 router.get(
   "/product/by-category/:slug",
   ProductControllers.getProductsByCategory,

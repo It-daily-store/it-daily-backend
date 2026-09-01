@@ -971,6 +971,72 @@ const getFeaturedProductFromDB = async (queryLimit?: string) => {
   return products;
 };
 
+// Lean projection for storefront rows: only what the product card renders.
+const STOREFRONT_CARD_FIELDS =
+  "name slug thumbnail gallery price discount quantity sales createdAt";
+
+const getNewArrivalsFromDB = async (queryLimit?: string) => {
+  const limit = Number(queryLimit) || 12;
+
+  const products = await Product.find({ isDeleted: false, isPublished: true })
+    .select(STOREFRONT_CARD_FIELDS)
+    .sort("-createdAt")
+    .limit(limit)
+    .lean();
+
+  return products;
+};
+
+const getBestSellersFromDB = async (queryLimit?: string) => {
+  const limit = Number(queryLimit) || 12;
+
+  // Ties (every product starts at sales: 0) fall back to recency so the row is never empty.
+  const products = await Product.find({ isDeleted: false, isPublished: true })
+    .select(STOREFRONT_CARD_FIELDS)
+    .sort("-sales -updatedAt")
+    .limit(limit)
+    .lean();
+
+  return products;
+};
+
+const getProductsByBrandFromDB = async (
+  brandId: string,
+  query: Record<string, unknown>,
+) => {
+  const brand = await Brand.findOne({
+    _id: brandId,
+    isDeleted: false,
+  }).select("name image");
+
+  if (!brand) {
+    throw new AppError(httpStatus.NOT_FOUND, "Brand does not exist");
+  }
+
+  const pagination = {
+    total: 0,
+    currentPage: query.page ? Number(query.page) : 1,
+    limit: query.limit ? Number(query.limit) : 20,
+  };
+
+  const brandQuery = {
+    brand: brandId,
+    isDeleted: false,
+    isPublished: true,
+  };
+
+  const products = await Product.find(brandQuery)
+    .select(STOREFRONT_CARD_FIELDS)
+    .sort("-createdAt")
+    .skip((pagination.currentPage - 1) * pagination.limit)
+    .limit(pagination.limit)
+    .lean();
+
+  pagination.total = await Product.countDocuments(brandQuery);
+
+  return { result: { brand, products }, pagination };
+};
+
 const getProductByCategoryFromDB = async (
   slug: string,
   query: Record<string, unknown>,
@@ -1178,6 +1244,9 @@ export const ProductServices = {
   getSingleProductFromDB,
   updateProductIntoDB,
   getFeaturedProductFromDB,
+  getNewArrivalsFromDB,
+  getBestSellersFromDB,
+  getProductsByBrandFromDB,
   getProductByCategoryFromDB,
   getSingleProductBySlugFromDB,
   getSearchProductsFromDB,

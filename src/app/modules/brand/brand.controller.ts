@@ -42,6 +42,17 @@ const getAllBrands = catchAsync(async (req, res) => {
   });
 });
 
+const getStorefrontBrands = catchAsync(async (req, res) => {
+  const result = await BrandService.getStorefrontBrandsFromDB();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully retrived all brands",
+    data: result,
+  });
+});
+
 const deleteBrand = catchAsync(async (req, res) => {
   const id = req.params.id;
   const { userData } = req.user;
@@ -60,5 +71,6 @@ export const BrandController = {
   createBrand,
   updateBrand,
   getAllBrands,
+  getStorefrontBrands,
   deleteBrand,
 };

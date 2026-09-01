@@ -91,6 +91,47 @@ const getFeaturedProducts = catchAsync(async (req, res) => {
   });
 });
 
+const getNewArrivals = catchAsync(async (req, res) => {
+  const result = await ProductServices.getNewArrivalsFromDB(
+    req.query?.limit as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Fetched new arrivals successfully",
+    data: result,
+  });
+});
+
+const getBestSellers = catchAsync(async (req, res) => {
+  const result = await ProductServices.getBestSellersFromDB(
+    req.query?.limit as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Fetched best selling products successfully",
+    data: result,
+  });
+});
+
+const getProductsByBrand = catchAsync(async (req, res) => {
+  const result = await ProductServices.getProductsByBrandFromDB(
+    req.params.brandId,
+    req.query
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully retrived products of the brand",
+    data: result.result,
+    pagination: result.pagination,
+  });
+});
+
 const getProductsByCategory = catchAsync(async (req, res) => {
   const result = await ProductServices.getProductByCategoryFromDB(
     req.params.slug,
@@ -222,6 +263,9 @@ export const ProductControllers = {
   getSingleProduct,
   updateProduct,
   getFeaturedProducts,
+  getNewArrivals,
+  getBestSellers,
+  getProductsByBrand,
   getProductsByCategory,
   getCompareProducts,
   getSearchProducts,

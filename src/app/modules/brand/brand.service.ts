@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { TBrand } from "./brand.interface";
 import { Brand } from "./brand.model";
+import { Product } from "../product/product.model";
 import { User } from "../user/user.model";
 import { TUser } from "../user/user.interface";
 import {
@@ -113,9 +114,35 @@ const deleteBrandFromDB = async (id: string, admin: TUser) => {
   return result;
 };
 
+const getStorefrontBrandsFromDB = async () => {
+  const brands = await Brand.find({ isDeleted: false, isActive: true })
+    .select("name image")
+    .sort("name")
+    .lean();
+
+  const counts = await Product.aggregate([
+    { $match: { isDeleted: false, isPublished: true } },
+    { $group: { _id: "$brand", total: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map<string, number>(
+    counts.map((c) => [String(c._id), c.total as number])
+  );
+
+  // Brands with nothing to sell would be dead ends on the storefront.
+  return brands
+    .map((brand) => ({
+      ...brand,
+      productCount: countMap.get(String(brand._id)) || 0,
+    }))
+    .filter((brand) => brand.productCount > 0)
+    .sort((a, b) => b.productCount - a.productCount);
+};
+
 export const BrandService = {
   createBrandIntoDB,
   updateBrandIntoDB,
   getAllBrandsFromDB,
+  getStorefrontBrandsFromDB,
   deleteBrandFromDB,
 };
