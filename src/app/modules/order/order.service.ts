@@ -8,7 +8,6 @@ import Order from "./order.model";
 import config from "../../config";
 import Stripe from "stripe";
 import { User } from "../user/user.model";
-import Address from "../address/address.model";
 import { Response, Request } from "express";
 import {
   addNotifications,
@@ -16,7 +15,7 @@ import {
 } from "../notification/notificaiton.utils";
 import { TNotification } from "../notification/notification.interface";
 import { TUser } from "../user/user.interface";
-import { IAddress } from "../address/address.interface";
+import { AddressService } from "../address/address.service";
 import Deal from "../deals/deals.model";
 import FlashSale from "../flashSales/flashSale.model";
 import { EmailJobName, emailQueue } from "../../queues/email.queue";
@@ -230,14 +229,11 @@ const addOrderToDB = async (
 
   if (data.saveAddress) {
     try {
-      const addressPayload: IAddress = {
-        user: thisUser._id,
+      await AddressService.createAddressIntoDB(thisUser._id.toString(), {
         address: data.shippingAddress?.address,
         city: data.shippingAddress?.city,
         district: data.shippingAddress?.district,
-      };
-
-      await Address.create(addressPayload);
+      });
     } catch (err) {
       console.log(err);
     }

@@ -20,6 +20,7 @@ import DealRoutes from "../modules/deals/deal.route";
 import SettingsRoute from "../modules/settings/settings.route";
 import dashboardRoutes from "../modules/dashboard/dashboard.route";
 import { BannerRoutes } from "../modules/banner/banner.routes";
+import { SavedBuildRoutes } from "../modules/savedBuild/savedBuild.route";
 
 const router = Router();
 
@@ -43,6 +44,7 @@ const moduleRoutes = [
   { path: "/customer", route: CustomerRoutes },
   { path: "/order", route: OrderRoutes },
   { path: "/address", route: AddressRoutes },
+  { path: "/saved-build", route: SavedBuildRoutes },
   { path: "/deal", route: DealRoutes },
   { path: "/settings", route: SettingsRoute },
   { path: "/dashboard", route: dashboardRoutes },

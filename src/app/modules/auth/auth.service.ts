@@ -374,7 +374,7 @@ const updatePasswordService = async (
   );
 
   if (!matchPassword) {
-    throw new AppError(httpStatus.CONFLICT, "Password does not match");
+    throw new AppError(httpStatus.CONFLICT, "Current password is incorrect");
   }
 
   const password = await bcrypt.hash(
