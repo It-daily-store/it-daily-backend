@@ -29,7 +29,7 @@ const createBrandIntoDB = async (
       source: result._id,
       actionType: "create",
       notificationType: "brand",
-      text: "added a brand",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 
@@ -59,7 +59,7 @@ const updateBrandIntoDB = async (
       source: result._id,
       actionType: "update",
       notificationType: "brand",
-      text: "updated a brand",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 
@@ -104,7 +104,7 @@ const deleteBrandFromDB = async (id: string, admin: TUser) => {
       source: result._id,
       actionType: "delete",
       notificationType: "brand",
-      text: "deleted a brand",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 

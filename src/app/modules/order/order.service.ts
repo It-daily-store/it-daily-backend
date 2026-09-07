@@ -71,7 +71,6 @@ export const paymentWebhook = async (req: Request, res: Response) => {
               $push: {
                 statusHistory: [
                   {
-                    notes: "Order has been confirmed",
                     status: "confirmed",
                     timestamp: new Date(),
                   },
@@ -134,7 +133,6 @@ const addOrderToDB = async (
       {
         status: "pending",
         timestamp: new Date(),
-        notes: "Order placed successfully",
       },
     ],
     user: thisUser._id,
@@ -257,7 +255,7 @@ const addOrderToDB = async (
         actionType: "create",
         notificationType: "order",
         source: order.orderNumber,
-        text: "added an order",
+        meta: { orderNumber: String(order.orderNumber) },
         thisUser: customer,
       });
 
@@ -268,7 +266,7 @@ const addOrderToDB = async (
         userFrom: customer._id,
         userTo: customer?._id,
         source: String(order.orderNumber),
-        text: `Order placed successfully`,
+        meta: { orderNumber: String(order.orderNumber) },
       };
 
       await addNotifications({
@@ -512,17 +510,24 @@ const adminUpdateOrderToDB = async (
   if (!order) throw new Error("Order not found");
 
   const customer = await User.findById(order.user);
+  // The admin performing the update is the actor, not the order's customer.
+  const actingAdmin = await User.findById(userId);
+
+  const statusChanged =
+    !!updateData.currentStatus &&
+    updateData.currentStatus !== order.currentStatus;
+
+  const statusChange =
+    statusChanged && updateData.currentStatus
+      ? { orderStatus: String(updateData.currentStatus) }
+      : {};
 
   // Auto-add to status history if currentStatus changed
-  if (
-    updateData.currentStatus &&
-    updateData.currentStatus !== order.currentStatus
-  ) {
+  if (statusChanged && updateData.currentStatus) {
     order.statusHistory.push({
       status: updateData.currentStatus,
-      notes:
-        updateData.adminNotes?.trim() ||
-        `Status updated to ${updateData.currentStatus} by admin`,
+      // Only a note an admin actually typed; the display line is built client-side.
+      notes: updateData.adminNotes?.trim(),
       timestamp: new Date(),
       updatedBy: userId,
     });
@@ -547,33 +552,29 @@ const adminUpdateOrderToDB = async (
     { new: true, runValidators: true }
   ).populate("user", "name email phone");
 
-  if (order && customer) {
+  if (order && customer && actingAdmin) {
     try {
       const notifications = await buildNotifications({
         actionType: "update",
         notificationType: "order",
         source: order.orderNumber,
-        text: `updated an order ${order.orderNumber}`,
-        thisUser: customer,
+        meta: { orderNumber: String(order.orderNumber), ...statusChange },
+        thisUser: actingAdmin,
       });
 
       const notification: TNotification = {
         notificationType: "order",
         actionType: "update",
         opened: false,
-        userFrom: customer._id,
+        userFrom: actingAdmin._id,
         userTo: customer?._id,
         source: String(order.orderNumber),
-        text: `Order update ${order.orderNumber}. ${
-          updateData.currentStatus &&
-          updateData.currentStatus !== order.currentStatus &&
-          `Your order is ${updateData.currentStatus}`
-        }`,
+        meta: { orderNumber: String(order.orderNumber), ...statusChange },
       };
 
       await addNotifications({
         notifications: [...notifications, notification],
-        userFrom: customer,
+        userFrom: actingAdmin,
       });
     } catch (err) {
       console.log(err);

@@ -19,7 +19,7 @@ const createProductDetailsCategoryIntoDB = async (
       actionType: "create",
       notificationType: "productDetails",
       source: result._id,
-      text: "added a details category",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 
@@ -52,7 +52,7 @@ const updateProductDetailsCategoryIntoDB = async (
       actionType: "update",
       notificationType: "productDetails",
       source: result._id,
-      text: "updated a details category",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 
@@ -79,7 +79,7 @@ const deleteProductDetailsCategoryFromDB = async (id: string, admin: TUser) => {
       actionType: "delete",
       notificationType: "productDetails",
       source: result._id,
-      text: "deleted a details category",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 

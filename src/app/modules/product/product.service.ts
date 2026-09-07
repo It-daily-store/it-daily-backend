@@ -84,7 +84,7 @@ const createProductIntoDB = async (
 
     const notifications = await buildNotifications({
       source: result._id,
-      text: "added a product",
+      meta: { entityName: result.name },
       thisUser,
       notificationType: "product",
       actionType: "create",
@@ -949,7 +949,7 @@ const updateProductIntoDB = async (
 
     const notifications = await buildNotifications({
       source: result._id,
-      text: "updated a product",
+      meta: { entityName: result.name },
       thisUser,
       notificationType: "product",
       actionType: "update",

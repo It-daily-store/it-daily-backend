@@ -1,5 +1,14 @@
 import { model, Schema } from "mongoose";
-import { TNotification } from "./notification.interface";
+import { TNotification, TNotificationMeta } from "./notification.interface";
+
+const notificationMetaSchema = new Schema<TNotificationMeta>(
+  {
+    entityName: { type: String },
+    orderNumber: { type: String },
+    orderStatus: { type: String },
+  },
+  { _id: false }
+);
 
 const notificationSchema = new Schema<TNotification>(
   {
@@ -21,9 +30,8 @@ const notificationSchema = new Schema<TNotification>(
       required: true,
       ref: "User",
     },
-    text: {
-      type: String,
-      required: true,
+    meta: {
+      type: notificationMetaSchema,
     },
     notificationType: {
       type: String,
