@@ -49,7 +49,7 @@ const createCategoryIntoDB = async (payload: TCategory, admin: TUser) => {
       actionType: "create",
       notificationType: "category",
       source: result._id,
-      text: "added a category",
+      meta: { entityName: result.name },
       thisUser: admin,
     });
 
@@ -105,7 +105,7 @@ const deleteCategoryFromDB = async (id: string, admin: TUser) => {
         actionType: "delete",
         notificationType: "category",
         source: result._id,
-        text: "deleted a category",
+        meta: { entityName: result.name },
         thisUser: admin,
       });
 
@@ -160,7 +160,7 @@ const updateCategoryIntoDB = async (
         actionType: "update",
         notificationType: "category",
         source: result._id,
-        text: "updated a category",
+        meta: { entityName: result.name },
         thisUser: admin,
       });
 
