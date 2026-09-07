@@ -58,6 +58,22 @@ const userLogin = catchAsync(async (req, res) => {
   });
 });
 
+const logout = catchAsync(async (req, res) => {
+  res.clearCookie("gadget_grid_refresh_token", {
+    secure: config.node_environment !== "development",
+  });
+  res.clearCookie("gadget_grid_access_token", {
+    secure: config.node_environment !== "development",
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Logged out successfully",
+    data: {},
+  });
+});
+
 const refreshToken = catchAsync(async (req, res) => {
   const { gadget_grid_refresh_token } = req.cookies;
 
@@ -193,6 +209,7 @@ const updateMyProfile = catchAsync(async (req, res) => {
 
 export const AuthController = {
   adminLogin,
+  logout,
   refreshToken,
   getMyData,
   forgotPassword,
