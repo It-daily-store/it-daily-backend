@@ -15,6 +15,15 @@ const addressSchema = new Schema<IAddress>(
       type: String,
       required: true,
     },
+    label: {
+      type: String,
+      enum: ["home", "office", "other"],
+      default: "home",
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
     user: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -23,6 +32,8 @@ const addressSchema = new Schema<IAddress>(
   },
   { timestamps: true }
 );
+
+addressSchema.index({ user: 1, isDefault: -1, createdAt: -1 });
 
 const Address = model<IAddress>("Address", addressSchema);
 

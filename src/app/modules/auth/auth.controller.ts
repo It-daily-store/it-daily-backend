@@ -164,7 +164,7 @@ const updatePassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Email verification successfull. Please login",
+    message: "Password updated successfully",
     data: result,
   });
 });
