@@ -10,6 +10,8 @@ router.post("/customer-register", AuthController.registerCustomer);
 
 router.post("/admin-login", AuthController.adminLogin);
 
+router.post("/logout", AuthController.logout);
+
 router.post("/refresh-token", AuthController.refreshToken);
 
 router.post(
