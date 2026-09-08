@@ -1,6 +1,6 @@
 import { Router } from "express";
 import checkPermission from "../../middleware/checkPermission";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 import { FilterControllers } from "./filter.controller";
 import { validateRequest } from "../../middleware/validateRequest";
 import { filterValidations } from "./filter.validation";
@@ -9,24 +9,24 @@ const router = Router();
 
 router.post(
   "/create",
-  checkPermission(EAppFeatures.productFilter, "create"),
+  checkPermission(EAppModules.productFilter, "can_create_filter"),
   validateRequest(filterValidations.createFilterValidationSchema),
   FilterControllers.createFilter
 );
 router.patch(
   "/update/:id",
-  checkPermission(EAppFeatures.productFilter, "update"),
+  checkPermission(EAppModules.productFilter, "can_update_filter"),
   validateRequest(filterValidations.updateFilterValidationSchema),
   FilterControllers.updateFilter
 );
 router.get(
   "/get-all",
-  checkPermission(EAppFeatures.productFilter, "read"),
+  checkPermission(EAppModules.productFilter, "can_read_all_filters"),
   FilterControllers.getAllFilters
 );
 router.delete(
   "/delete/:id",
-  checkPermission(EAppFeatures.productFilter, "delete"),
+  checkPermission(EAppModules.productFilter, "can_delete_filter"),
   FilterControllers.deleteFilter
 );
 

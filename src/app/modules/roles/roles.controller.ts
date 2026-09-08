@@ -28,6 +28,19 @@ const getAllRoles = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleRole = catchAsync(async (req, res) => {
+  const id = req.params.id;
+
+  const result = await RolesService.getSingleRoleFromDB(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "retrived role successfully",
+    data: result,
+  });
+});
+
 const updateRole = catchAsync(async (req, res) => {
   const email = req.user.email;
   const payload = req.body;
@@ -39,6 +52,17 @@ const updateRole = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "Updated role successfully",
+    data: result,
+  });
+});
+
+const getPermissionCatalog = catchAsync(async (req, res) => {
+  const result = RolesService.getPermissionCatalog();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "retrived permission catalog successfully",
     data: result,
   });
 });
@@ -59,6 +83,8 @@ const deleteRole = catchAsync(async (req, res) => {
 export const RolesController = {
   createRole,
   getAllRoles,
+  getSingleRole,
   updateRole,
   deleteRole,
+  getPermissionCatalog,
 };

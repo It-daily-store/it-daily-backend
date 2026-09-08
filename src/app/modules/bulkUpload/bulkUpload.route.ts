@@ -1,10 +1,10 @@
 import { Router } from "express";
 import checkPermission from "../../middleware/checkPermission";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 import { BulkUploadHistoryController } from "./bulkUpload.controller";
 
 const router = Router()
 
-router.get('/get-all', checkPermission(EAppFeatures.bulkUpload, 'read'), BulkUploadHistoryController.getBulkUploadHistory)
+router.get('/get-all', checkPermission(EAppModules.bulkUpload, 'can_read_bulk_upload_history'), BulkUploadHistoryController.getBulkUploadHistory)
 
 export const bulkUploadRoutes = router

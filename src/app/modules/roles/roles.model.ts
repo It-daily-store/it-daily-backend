@@ -1,31 +1,26 @@
-import {model, Schema} from "mongoose";
-import {EAppFeatures, TPermission, TRole, TRoleModel} from "./roles.interface";
+import { model, Schema } from "mongoose";
+import {
+  EAppModules,
+  TModulePermission,
+  TRole,
+  TRoleModel,
+} from "./roles.interface";
 
-const PermissionsSchema = new Schema<TPermission>({
-  feature: {
-    type: String,
-    enum: Object.values(EAppFeatures),
-    required: [true, "Feature name is required"],
-  },
-  access: {
-    read: {
-      type: Boolean,
-      default: false,
+const PermissionsSchema = new Schema<TModulePermission>(
+  {
+    module: {
+      type: String,
+      enum: Object.values(EAppModules),
+      required: [true, "Module name is required"],
     },
-    create: {
-      type: Boolean,
-      default: false,
-    },
-    update: {
-      type: Boolean,
-      default: false,
-    },
-    delete: {
-      type: Boolean,
-      default: false,
+    permissions: {
+      type: Map,
+      of: Boolean,
+      default: {},
     },
   },
-});
+  { _id: false },
+);
 
 const RolesSchema = new Schema<TRole>({
   role: {
@@ -39,15 +34,8 @@ const RolesSchema = new Schema<TRole>({
   },
   permissions: {
     type: [PermissionsSchema],
-    default: Object.values(EAppFeatures).map((feature) => ({
-      feature: feature,
-      access: {
-        read: false,
-        create: false,
-        update: false,
-        delete: false,
-      },
-    })),
+    default: () =>
+      Object.values(EAppModules).map((module) => ({ module, permissions: {} })),
   },
   isDeleted: {
     type: Boolean,
@@ -55,26 +43,17 @@ const RolesSchema = new Schema<TRole>({
   },
 });
 
+// Guarantee one entry per module without materialising unsupplied keys —
+// an absent key already means denied.
 RolesSchema.pre("save", function (next) {
-  const role = this as TRole;
+  const role = this as unknown as TRole;
+  const supplied = role.permissions ?? [];
 
-  const defaultPermissions: TPermission[] = Object.values(EAppFeatures).map((feature) => ({
-    feature: feature,
-    access: {
-      read: false,
-      create: false,
-      update: false,
-      delete: false,
-    },
-  }));
-
-  const modifiedPermissions = defaultPermissions.map((dPermission) => {
-    const providedPermission = role.permissions.find((p) => p.feature === dPermission.feature);
-
-    return providedPermission ? providedPermission : dPermission;
+  role.permissions = Object.values(EAppModules).map((module) => {
+    const existing = supplied.find((p) => p.module === module);
+    return existing ?? { module, permissions: {} };
   });
 
-  role.permissions = modifiedPermissions;
   next();
 });
 

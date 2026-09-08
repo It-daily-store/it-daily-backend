@@ -9,6 +9,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "seed": "ts-node src/scripts/seed.ts",
+    "migrate:permissions": "ts-node src/scripts/migratePermissions.ts",
     "build": "tsc",
     "build:prod": "env-cmd -f .env.prod tsc",
     "start": "node dist/server.js",

@@ -1,13 +1,13 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import AppError from "../errors/AppError";
 import { User } from "../modules/user/user.model";
 import catchAsync from "../utils/catchAsync";
-import { TCrud, TRole } from "../modules/roles/roles.interface";
+import { EAppModules, TRole } from "../modules/roles/roles.interface";
+import { TPermissionKey } from "../modules/roles/roles.permissions";
 import { Roles } from "../modules/roles/roles.model";
 
-type TAccessType = keyof TCrud;
-
-const checkPermission = (feature: string, accessType: TAccessType) => {
+const checkPermission = (module: EAppModules, key: TPermissionKey) => {
   return catchAsync(async (req, res, next) => {
     const user = req.user;
 
@@ -24,7 +24,7 @@ const checkPermission = (feature: string, accessType: TAccessType) => {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
         "Your account was deleted",
-        "unauthorized access request"
+        "unauthorized access request",
       );
     }
 
@@ -32,8 +32,12 @@ const checkPermission = (feature: string, accessType: TAccessType) => {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
         "Your account is blocked",
-        "unauthorized access request"
+        "unauthorized access request",
       );
+    }
+
+    if (!mongoose.isValidObjectId(userExist.role)) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized user request");
     }
 
     const role: TRole | null = await Roles.findById(userExist.role);
@@ -42,18 +46,23 @@ const checkPermission = (feature: string, accessType: TAccessType) => {
       throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized user request");
     }
 
-    const permission = role.permissions.find((p) => p.feature === feature);
+    const entry = role.permissions.find((p) => p.module === module);
 
-    const hasPermission = permission?.access[accessType] === true;
+    // Mongoose hydrates `permissions` as a Map; a lean/plain object needs the
+    // bracket read. Support both so this works either way.
+    const granted =
+      entry?.permissions instanceof Map
+        ? entry.permissions.get(key)
+        : entry?.permissions?.[key];
 
-    if (!hasPermission) {
+    if (granted !== true) {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
-        `You do not have permission to ${accessType} ${feature}`
+        `You do not have permission: ${key}`,
       );
-    } else {
-      next();
     }
+
+    next();
   });
 };
 

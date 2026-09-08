@@ -1,13 +1,6 @@
 import { Model } from "mongoose";
 
-export interface TCrud {
-  read: boolean;
-  create: boolean;
-  update: boolean;
-  delete: boolean;
-}
-
-export enum EAppFeatures {
+export enum EAppModules {
   gallery = "gallery",
   role = "role",
   product = "product",
@@ -24,15 +17,15 @@ export enum EAppFeatures {
   banner = "banner",
 }
 
-export interface TPermission {
-  feature: EAppFeatures;
-  access: TCrud;
+export interface TModulePermission {
+  module: EAppModules;
+  permissions: Record<string, boolean>;
 }
 
 export interface TRole {
   role: string;
   description?: string;
-  permissions: TPermission[];
+  permissions: TModulePermission[];
   isDeleted?: boolean;
 }
 

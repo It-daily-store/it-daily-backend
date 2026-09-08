@@ -1,7 +1,7 @@
 import { Router } from "express";
 import checkPermission from "../../middleware/checkPermission";
 import validateAuth from "../../middleware/auth";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 import { validateRequest } from "../../middleware/validateRequest";
 import { BannerTemplateValidationSchema } from "./banner.validation";
 import { BannerTemplateController } from "./banner.controller";
@@ -12,21 +12,21 @@ const router = Router();
 router.get(
   "/get/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "read"),
+  checkPermission(EAppModules.banner, "can_read_banner_details"),
   BannerTemplateController.getTemplateById,
 );
 
 router.get(
   "/get-all",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "read"),
+  checkPermission(EAppModules.banner, "can_read_all_banners"),
   BannerTemplateController.getAllTemplates,
 );
 
 router.post(
   "/create",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "create"),
+  checkPermission(EAppModules.banner, "can_create_banner"),
   checkBreakpointsDepth,
   validateRequest(
     BannerTemplateValidationSchema.createTemplateValidationSchema,
@@ -37,7 +37,7 @@ router.post(
 router.patch(
   "/update/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "update"),
+  checkPermission(EAppModules.banner, "can_update_banner"),
   checkBreakpointsDepth,
   validateRequest(
     BannerTemplateValidationSchema.updateTemplateValidationSchema,
@@ -48,7 +48,7 @@ router.patch(
 router.patch(
   "/rename/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "update"),
+  checkPermission(EAppModules.banner, "can_rename_banner"),
   validateRequest(
     BannerTemplateValidationSchema.renameTemplateValidationSchema,
   ),
@@ -61,7 +61,7 @@ router.patch(
 router.patch(
   "/set-active/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "update"),
+  checkPermission(EAppModules.banner, "can_publish_banner"),
   validateRequest(BannerTemplateValidationSchema.setActiveValidationSchema),
   BannerTemplateController.setActiveTemplate,
 );
@@ -69,14 +69,14 @@ router.patch(
 router.post(
   "/duplicate/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "create"),
+  checkPermission(EAppModules.banner, "can_duplicate_banner"),
   BannerTemplateController.duplicateTemplate,
 );
 
 router.delete(
   "/delete/:id",
   validateAuth(),
-  checkPermission(EAppFeatures.banner, "delete"),
+  checkPermission(EAppModules.banner, "can_delete_banner"),
   BannerTemplateController.deleteTemplate,
 );
 

@@ -3,7 +3,7 @@ import { validateRequest } from "../../middleware/validateRequest";
 import { ProductValidations } from "./product.validations";
 import { ProductControllers } from "./product.controller";
 import checkPermission from "../../middleware/checkPermission";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 import upload from "../../lib/image/image.multer";
 
 const router = Router();
@@ -11,40 +11,44 @@ const router = Router();
 router.post(
   "/create-product",
   validateRequest(ProductValidations.createProductValidationSchema),
-  checkPermission(EAppFeatures.product, "create"),
+  checkPermission(EAppModules.product, "can_create_product"),
   ProductControllers.createProduct
 );
 
-router.get("/get-all", ProductControllers.getAllProduct);
+router.get(
+  "/get-all",
+  checkPermission(EAppModules.product, "can_read_all_products"),
+  ProductControllers.getAllProduct,
+);
 
 router.post(
   "/bulk-upload",
-  checkPermission(EAppFeatures.product, "create"),
+  checkPermission(EAppModules.product, "can_bulk_upload_products"),
   upload.single("bulkFile"),
   ProductControllers.bulkUpload
 );
 
 router.post(
   "/bulk-upload-json",
-  checkPermission(EAppFeatures.product, "create"),
+  checkPermission(EAppModules.product, "can_bulk_upload_products"),
   upload.single("bulkFile"),
   ProductControllers.jsonBulkUpload
 );
 
 router.get(
   "/single/:id",
-  checkPermission(EAppFeatures.product, "read"),
+  checkPermission(EAppModules.product, "can_read_product_details"),
   ProductControllers.getSingleProduct
 );
 router.get(
   "/json-template",
-  checkPermission(EAppFeatures.product, "read"),
+  checkPermission(EAppModules.product, "can_download_product_template"),
   ProductControllers.downloadJsonTemplate
 );
 
 router.patch(
   "/update-product/:id",
-  checkPermission(EAppFeatures.product, "update"),
+  checkPermission(EAppModules.product, "can_update_product"),
   ProductControllers.updateProduct
 );
 

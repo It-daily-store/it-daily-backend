@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import AppError from "../../errors/AppError";
 import { User } from "../user/user.model";
-import { EAppFeatures, TPermission, TRole } from "./roles.interface";
+import { EAppModules, TModulePermission, TRole } from "./roles.interface";
 import { Roles } from "./roles.model";
+import { MODULE_LABELS, PERMISSION_CATALOG } from "./roles.permissions";
 
 const createRoleIntoDB = async (payload: TRole) => {
   const result = await Roles.create(payload);
@@ -12,6 +14,20 @@ const createRoleIntoDB = async (payload: TRole) => {
 
 const getAllRolesFromDB = async () => {
   const result = await Roles.find({ isDeleted: false });
+
+  return result;
+};
+
+const getSingleRoleFromDB = async (id: string) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Role does not exist");
+  }
+
+  const result = await Roles.findById(id);
+
+  if (!result || result.isDeleted) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Role does not exist");
+  }
 
   return result;
 };
@@ -33,49 +49,28 @@ const updateRoleIntoDB = async (payload: TRole, email: string, id: string) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "Role does not exist");
   }
 
-  const defaultPermissions = Object.values(EAppFeatures).map((feature) => ({
-    feature,
-    access: {
-      read: false,
-      create: false,
-      update: false,
-      delete: false,
+  const newPermissions: TModulePermission[] = Object.values(EAppModules).map(
+    (module) => {
+      const payloadPermission = payload.permissions?.find(
+        (p) => p.module === module,
+      );
+      if (payloadPermission) {
+        return { module, permissions: payloadPermission.permissions ?? {} };
+      }
+
+      const existing = thisRole.permissions?.find((p) => p.module === module);
+      if (existing) {
+        // Mongoose hydrates this as a Map; normalise before writing it back.
+        const permissions =
+          existing.permissions instanceof Map
+            ? Object.fromEntries(existing.permissions)
+            : (existing.permissions ?? {});
+        return { module, permissions };
+      }
+
+      return { module, permissions: {} };
     },
-  }))
-
-  const newPermissions: TPermission[] = defaultPermissions?.map((permission) => {
-    const payloadPermission = payload.permissions.find((p) => p.feature === permission.feature);
-    const existingPermission = thisRole.permissions.find(p => p.feature === permission.feature)
-
-    if (payloadPermission && Object.values(EAppFeatures).includes(payloadPermission.feature)) {
-      return {
-        feature: permission.feature,
-        access: {
-          read: payloadPermission.access.read ?? permission.access.read,
-          create: payloadPermission.access.create ?? permission.access.create,
-          update: payloadPermission.access.update ?? permission.access.update,
-          delete: payloadPermission.access.delete ?? permission.access.delete,
-        },
-      };
-    }
-    else if (existingPermission && Object.values(EAppFeatures).includes(existingPermission.feature)) {
-      return {
-        feature: permission.feature,
-        access: {
-          read: existingPermission.access.read ?? permission.access.read,
-          create: existingPermission.access.create ?? permission.access.create,
-          update: existingPermission.access.update ?? permission.access.update,
-          delete: existingPermission.access.delete ?? permission.access.delete,
-        },
-      };
-    }
-    else {
-      return {
-        feature: permission.feature,
-        access: permission.access,
-      };
-    }
-  });
+  );
   const result = await Roles.findByIdAndUpdate(
     id,
     {
@@ -87,6 +82,14 @@ const updateRoleIntoDB = async (payload: TRole, email: string, id: string) => {
   );
 
   return result;
+};
+
+const getPermissionCatalog = () => {
+  return Object.entries(PERMISSION_CATALOG).map(([module, defs]) => ({
+    module,
+    label: MODULE_LABELS[module as EAppModules],
+    permissions: defs.map(({ key, label }) => ({ key, label })),
+  }));
 };
 
 const deleteRoleFromDB = async (id: string) => {
@@ -103,6 +106,8 @@ const deleteRoleFromDB = async (id: string) => {
 export const RolesService = {
   createRoleIntoDB,
   getAllRolesFromDB,
+  getSingleRoleFromDB,
   updateRoleIntoDB,
   deleteRoleFromDB,
+  getPermissionCatalog,
 };
