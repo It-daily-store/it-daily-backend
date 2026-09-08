@@ -1,9 +1,9 @@
-import { EAppModules, TCrud } from "./roles.interface";
+import { EAppModules } from "./roles.interface";
 
 export type TPermissionDef = {
   key: string;
   label: string;
-  legacy: keyof TCrud;
+  legacy: "read" | "create" | "update" | "delete";
 };
 
 export const MODULE_LABELS: Record<EAppModules, string> = {

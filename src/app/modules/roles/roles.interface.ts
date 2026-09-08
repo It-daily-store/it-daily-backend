@@ -1,14 +1,5 @@
 import { Model } from "mongoose";
 
-// Retained only to type the catalog's `legacy` field, which drives the
-// one-time migration in src/scripts/migratePermissions.ts.
-export interface TCrud {
-  read: boolean;
-  create: boolean;
-  update: boolean;
-  delete: boolean;
-}
-
 export enum EAppModules {
   gallery = "gallery",
   role = "role",
