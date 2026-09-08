@@ -3,13 +3,13 @@ import { CategoryControllers } from "./category.controller";
 import { validateRequest } from "../../middleware/validateRequest";
 import { CategoryValidations } from "./category.validation";
 import checkPermission from "../../middleware/checkPermission";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 
 const router = Router();
 
 router.post(
   "/create",
-  checkPermission(EAppFeatures.category, "create"),
+  checkPermission(EAppModules.category, "can_create_category"),
   validateRequest(CategoryValidations.createCategoryValidationSchema),
   CategoryControllers.createCategory
 );
@@ -18,19 +18,19 @@ router.get("/get-all", CategoryControllers.getAllCategories);
 
 router.get(
   "/single/:id",
-  checkPermission(EAppFeatures.category, "read"),
+  checkPermission(EAppModules.category, "can_read_category_details"),
   CategoryControllers.getSingleCategories
 );
 
 router.delete(
   "/:id",
-  checkPermission(EAppFeatures.category, "delete"),
+  checkPermission(EAppModules.category, "can_delete_category"),
   CategoryControllers.deleteCategory
 );
 
 router.patch(
   "/:id",
-  checkPermission(EAppFeatures.category, "update"),
+  checkPermission(EAppModules.category, "can_update_category"),
   validateRequest(CategoryValidations.updateCategoryValidationSchema),
   CategoryControllers.updateCategory
 );

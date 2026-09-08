@@ -3,21 +3,21 @@ import {RolesController} from "./roles.controller";
 import {validateRequest} from "../../middleware/validateRequest";
 import {RolesValidations} from "./roles.validation";
 import checkPermission from "../../middleware/checkPermission";
-import {EAppFeatures} from "./roles.interface";
+import {EAppModules} from "./roles.interface";
 
 const router = Router();
 
 router.post(
   "/create-role",
   validateRequest(RolesValidations.createRoleValidationSchema),
-  checkPermission(EAppFeatures.role, "create"),
+  checkPermission(EAppModules.role, "can_create_role"),
   RolesController.createRole
 );
 
-router.get("/get-all", checkPermission(EAppFeatures.role, "read"), RolesController.getAllRoles);
+router.get("/get-all", checkPermission(EAppModules.role, "can_read_all_roles"), RolesController.getAllRoles);
 
-router.patch("/update-role/:id", checkPermission(EAppFeatures.role, "update"), RolesController.updateRole);
+router.patch("/update-role/:id", checkPermission(EAppModules.role, "can_update_role"), RolesController.updateRole);
 
-router.delete("/delete-role/:id", checkPermission(EAppFeatures.role, "delete"), RolesController.deleteRole);
+router.delete("/delete-role/:id", checkPermission(EAppModules.role, "can_delete_role"), RolesController.deleteRole);
 
 export const RolesRoutes = router;

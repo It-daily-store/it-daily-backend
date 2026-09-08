@@ -3,7 +3,7 @@ import { ProductDetailsCategoryControllers } from "./productDetailsCategory.cont
 import { ProductDetailsCategoryValidations } from "./productDetailsCategory.validation";
 import { validateRequest } from "../../middleware/validateRequest";
 import checkPermission from "../../middleware/checkPermission";
-import { EAppFeatures } from "../roles/roles.interface";
+import { EAppModules } from "../roles/roles.interface";
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.post(
   validateRequest(
     ProductDetailsCategoryValidations.createProductDetailsCategoryValidationSchema
   ),
-  checkPermission(EAppFeatures.productDetails, "create"),
+  checkPermission(EAppModules.productDetails, "can_create_details_category"),
   ProductDetailsCategoryControllers.createProductDetailsCategory
 );
 
@@ -21,23 +21,25 @@ router.patch(
   validateRequest(
     ProductDetailsCategoryValidations.updateProductDetailsCategoryValidationSchema
   ),
-  checkPermission(EAppFeatures.productDetails, "update"),
+  checkPermission(EAppModules.productDetails, "can_update_details_category"),
   ProductDetailsCategoryControllers.updateProductDetailsCategory
 );
 
 router.get(
   "/single/:id",
+  checkPermission(EAppModules.productDetails, "can_read_all_details_categories"),
   ProductDetailsCategoryControllers.getSingleProductDetailsCategory
 );
 
 router.get(
   "/get-all",
+  checkPermission(EAppModules.productDetails, "can_read_all_details_categories"),
   ProductDetailsCategoryControllers.getAllProductDetailsCategory
 );
 
 router.delete(
   "/delete/:id",
-  checkPermission(EAppFeatures.productDetails, "delete"),
+  checkPermission(EAppModules.productDetails, "can_delete_details_category"),
   ProductDetailsCategoryControllers.deleteProductDetailsCategory
 );
 
