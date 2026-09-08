@@ -22,7 +22,12 @@ router.get(
 
 router.get("/get-all", checkPermission(EAppModules.role, "can_read_all_roles"), RolesController.getAllRoles);
 
-router.patch("/update-role/:id", checkPermission(EAppModules.role, "can_update_role"), RolesController.updateRole);
+router.patch(
+  "/update-role/:id",
+  validateRequest(RolesValidations.updateRoleValidationSchema),
+  checkPermission(EAppModules.role, "can_update_role"),
+  RolesController.updateRole
+);
 
 router.delete("/delete-role/:id", checkPermission(EAppModules.role, "can_delete_role"), RolesController.deleteRole);
 
