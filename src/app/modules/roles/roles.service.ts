@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import AppError from "../../errors/AppError";
 import { User } from "../user/user.model";
 import { EAppModules, TModulePermission, TRole } from "./roles.interface";
@@ -13,6 +14,20 @@ const createRoleIntoDB = async (payload: TRole) => {
 
 const getAllRolesFromDB = async () => {
   const result = await Roles.find({ isDeleted: false });
+
+  return result;
+};
+
+const getSingleRoleFromDB = async (id: string) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Role does not exist");
+  }
+
+  const result = await Roles.findById(id);
+
+  if (!result || result.isDeleted) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Role does not exist");
+  }
 
   return result;
 };
@@ -91,6 +106,7 @@ const deleteRoleFromDB = async (id: string) => {
 export const RolesService = {
   createRoleIntoDB,
   getAllRolesFromDB,
+  getSingleRoleFromDB,
   updateRoleIntoDB,
   deleteRoleFromDB,
   getPermissionCatalog,

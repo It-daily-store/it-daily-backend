@@ -31,4 +31,10 @@ router.patch(
 
 router.delete("/delete-role/:id", checkPermission(EAppModules.role, "can_delete_role"), RolesController.deleteRole);
 
+router.get(
+  "/:id",
+  checkPermission(EAppModules.role, "can_read_all_roles"),
+  RolesController.getSingleRole
+);
+
 export const RolesRoutes = router;
