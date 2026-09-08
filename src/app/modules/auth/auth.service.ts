@@ -395,21 +395,23 @@ const getMyDataFromDB = async (
   query: Record<string, unknown>
 ) => {
   let select = "";
-  let populate: any = [];
 
   if (query.select) {
     select = query.select as string;
-  } else {
-    populate = [
+  }
+
+  const result = await User.findOne({ email }).select(
+    `${select} -password -otp`
+  );
+
+  // role is a plain string sentinel ("customer") for customer accounts, not an ObjectId, so only populate it for admins
+  if (result && !query.select && result.userType === "admin") {
+    await result.populate([
       {
         path: "role",
       },
-    ];
+    ]);
   }
-
-  const result = await User.findOne({ email })
-    .populate(populate)
-    .select(`${select} -password -otp`);
 
   return result;
 };
