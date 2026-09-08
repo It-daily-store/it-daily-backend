@@ -1,5 +1,7 @@
 import { Model } from "mongoose";
 
+// Retained only to type the catalog's `legacy` field, which drives the
+// one-time migration in src/scripts/migratePermissions.ts.
 export interface TCrud {
   read: boolean;
   create: boolean;
@@ -7,7 +9,7 @@ export interface TCrud {
   delete: boolean;
 }
 
-export enum EAppFeatures {
+export enum EAppModules {
   gallery = "gallery",
   role = "role",
   product = "product",
@@ -24,15 +26,15 @@ export enum EAppFeatures {
   banner = "banner",
 }
 
-export interface TPermission {
-  feature: EAppFeatures;
-  access: TCrud;
+export interface TModulePermission {
+  module: EAppModules;
+  permissions: Record<string, boolean>;
 }
 
 export interface TRole {
   role: string;
   description?: string;
-  permissions: TPermission[];
+  permissions: TModulePermission[];
   isDeleted?: boolean;
 }
 
