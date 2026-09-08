@@ -1,18 +1,24 @@
 import { z } from "zod";
 import { EAppModules } from "./roles.interface";
-import { ALL_PERMISSION_KEYS } from "./roles.permissions";
+import { PERMISSION_CATALOG } from "./roles.permissions";
 
-const TModulePermissionSchema = z.object({
-  module: z.nativeEnum(EAppModules),
-  permissions: z.record(z.string(), z.boolean()).refine(
-    (value) => Object.keys(value).every((key) => ALL_PERMISSION_KEYS.has(key)),
-    (value) => ({
-      message: `Unknown permission key: ${Object.keys(value)
-        .filter((key) => !ALL_PERMISSION_KEYS.has(key))
-        .join(", ")}`,
-    }),
-  ),
-});
+const TModulePermissionSchema = z
+  .object({
+    module: z.nativeEnum(EAppModules),
+    permissions: z.record(z.string(), z.boolean()),
+  })
+  .superRefine((entry, ctx) => {
+    const valid = new Set<string>(
+      PERMISSION_CATALOG[entry.module].map((d) => d.key),
+    );
+    const unknown = Object.keys(entry.permissions).filter((key) => !valid.has(key));
+    if (unknown.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Unknown permission key for module ${entry.module}: ${unknown.join(", ")}`,
+      });
+    }
+  });
 
 const createRoleValidationSchema = z.object({
   role: z
