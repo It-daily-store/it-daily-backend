@@ -84,12 +84,7 @@ const getAllAdminsFromDB = async (userType?: "admin" | "customer") => {
 };
 
 const getSingleUserFromDB = async (id: string) => {
-  const userData = await User?.findById(id).populate([
-    {
-      path: "role",
-      select: "role isDeleted -_id",
-    },
-  ]);
+  const userData = await User?.findById(id);
 
   if (!userData) {
     throw new AppError(httpStatus.CONFLICT, "Failed to get user data");
@@ -97,6 +92,15 @@ const getSingleUserFromDB = async (id: string) => {
 
   if (userData.isDeleted) {
     throw new AppError(httpStatus.CONFLICT, "User was deleted");
+  }
+
+  if (userData.userType === "admin") {
+    await userData.populate([
+      {
+        path: "role",
+        select: "role isDeleted -_id",
+      },
+    ]);
   }
 
   return userData;
