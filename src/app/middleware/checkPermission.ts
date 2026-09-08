@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import AppError from "../errors/AppError";
 import { User } from "../modules/user/user.model";
 import catchAsync from "../utils/catchAsync";
@@ -33,6 +34,10 @@ const checkPermission = (module: EAppModules, key: TPermissionKey) => {
         "Your account is blocked",
         "unauthorized access request",
       );
+    }
+
+    if (!mongoose.isValidObjectId(userExist.role)) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized user request");
     }
 
     const role: TRole | null = await Roles.findById(userExist.role);
