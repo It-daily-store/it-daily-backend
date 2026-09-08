@@ -3,6 +3,7 @@ import AppError from "../../errors/AppError";
 import { User } from "../user/user.model";
 import { EAppModules, TModulePermission, TRole } from "./roles.interface";
 import { Roles } from "./roles.model";
+import { MODULE_LABELS, PERMISSION_CATALOG } from "./roles.permissions";
 
 const createRoleIntoDB = async (payload: TRole) => {
   const result = await Roles.create(payload);
@@ -68,6 +69,14 @@ const updateRoleIntoDB = async (payload: TRole, email: string, id: string) => {
   return result;
 };
 
+const getPermissionCatalog = () => {
+  return Object.entries(PERMISSION_CATALOG).map(([module, defs]) => ({
+    module,
+    label: MODULE_LABELS[module as EAppModules],
+    permissions: defs.map(({ key, label }) => ({ key, label })),
+  }));
+};
+
 const deleteRoleFromDB = async (id: string) => {
   const thisRole: TRole | null = await Roles.isRoleExist(id);
   if (!thisRole) {
@@ -84,4 +93,5 @@ export const RolesService = {
   getAllRolesFromDB,
   updateRoleIntoDB,
   deleteRoleFromDB,
+  getPermissionCatalog,
 };

@@ -14,6 +14,12 @@ router.post(
   RolesController.createRole
 );
 
+router.get(
+  "/permission-catalog",
+  checkPermission(EAppModules.role, "can_see_role_page"),
+  RolesController.getPermissionCatalog,
+);
+
 router.get("/get-all", checkPermission(EAppModules.role, "can_read_all_roles"), RolesController.getAllRoles);
 
 router.patch("/update-role/:id", checkPermission(EAppModules.role, "can_update_role"), RolesController.updateRole);

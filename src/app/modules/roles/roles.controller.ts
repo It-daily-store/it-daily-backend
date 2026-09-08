@@ -43,6 +43,17 @@ const updateRole = catchAsync(async (req, res) => {
   });
 });
 
+const getPermissionCatalog = catchAsync(async (req, res) => {
+  const result = RolesService.getPermissionCatalog();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "retrived permission catalog successfully",
+    data: result,
+  });
+});
+
 const deleteRole = catchAsync(async (req, res) => {
   const id = req.params.id;
 
@@ -61,4 +72,5 @@ export const RolesController = {
   getAllRoles,
   updateRole,
   deleteRole,
+  getPermissionCatalog,
 };
