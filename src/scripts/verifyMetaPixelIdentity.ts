@@ -72,6 +72,16 @@ const run = () => {
   assert.strictEqual(isIpExcluded(undefined, ["203.0.113.0/24"]), false);
   assert.strictEqual(isIpExcluded("203.0.113.7", []), false);
 
+  // malformed IP patterns must not match (fail safe)
+  assert.strictEqual(isIpExcluded("0.0.113.7", ["999.0.113.0/24"]), false);
+  assert.strictEqual(isIpExcluded("203.0.113.7", ["203.0.999.0/24"]), false);
+  assert.strictEqual(isIpExcluded("203.0.113.7", ["203.0.113.7/33"]), false);
+  assert.strictEqual(isIpExcluded("not-an-ip", ["203.0.113.0/24"]), false);
+
+  // CIDR edge cases
+  assert.strictEqual(isIpExcluded("0.0.0.0", ["0.0.0.0/0"]), true);
+  assert.strictEqual(isIpExcluded("255.255.255.255", ["255.255.255.255/32"]), true);
+
   assert.strictEqual(
     isBotUserAgent("Mozilla/5.0 (compatible; Googlebot/2.1)"),
     true,

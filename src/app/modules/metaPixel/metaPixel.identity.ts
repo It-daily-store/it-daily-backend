@@ -72,10 +72,17 @@ const ipToLong = (ip: string): number | null => {
     return null;
   }
 
-  return parts.reduce((acc, part) => {
+  // Validate all octets are integers in 0..255 before any bitwise operations
+  const octets: (number | null)[] = parts.map((part) => {
     const octet = Number(part);
-    return octet >= 0 && octet <= 255 ? (acc << 8) + octet : NaN;
-  }, 0);
+    return Number.isInteger(octet) && octet >= 0 && octet <= 255 ? octet : null;
+  });
+
+  if (octets.some((o) => o === null)) {
+    return null;
+  }
+
+  return (octets as number[]).reduce((acc, octet) => (acc << 8) + octet, 0);
 };
 
 export const isIpExcluded = (
