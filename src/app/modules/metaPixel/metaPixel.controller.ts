@@ -37,8 +37,20 @@ const updateConfig = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const previewPayload = catchAsync(async (req: Request, res: Response) => {
+  const result = await MetaPixelService.previewPayload(req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Payload preview generated successfully",
+    data: result,
+  });
+});
+
 export const MetaPixelController = {
   getPublicConfig,
   getConfig,
   updateConfig,
+  previewPayload,
 };

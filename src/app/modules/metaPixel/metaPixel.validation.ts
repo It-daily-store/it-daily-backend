@@ -73,4 +73,14 @@ const UpdateConfigSchema = z.object({
   statusRules: z.array(statusRuleSchema).optional(),
 });
 
-export const MetaPixelValidation = { UpdateConfigSchema };
+const PreviewPayloadSchema = z
+  .object({
+    triggerKey: z.enum(TRIGGER_KEYS as [string, ...string[]]).optional(),
+    statusRuleId: z.string().trim().optional(),
+    sampleOrderId: z.string().trim().optional(),
+  })
+  .refine((v) => !!v.triggerKey !== !!v.statusRuleId, {
+    message: "Provide exactly one of triggerKey or statusRuleId",
+  });
+
+export const MetaPixelValidation = { UpdateConfigSchema, PreviewPayloadSchema };

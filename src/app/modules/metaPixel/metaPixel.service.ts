@@ -1,11 +1,16 @@
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import AppError from "../../errors/AppError";
+import Order from "../order/order.model";
 import { decryptToken, encryptToken, maskToken } from "./metaPixel.crypto";
 import { isIpExcluded } from "./metaPixel.identity";
 import { BACKEND_VISIBLE_KEYS, TRIGGER_REGISTRY } from "./metaPixel.constants";
 import { IMetaPixelConfig } from "./metaPixel.interface";
 import MetaPixelConfig from "./metaPixel.model";
+import {
+  buildOrderEventPayload,
+  buildTriggerEventPayload,
+} from "./metaPixel.payload";
 
 const defaultTriggers = () =>
   TRIGGER_REGISTRY.map((def) => ({
@@ -182,9 +187,77 @@ const updateConfig = async (
   return getAdminConfig();
 };
 
+const previewPayload = async (input: {
+  triggerKey?: string;
+  statusRuleId?: string;
+  sampleOrderId?: string;
+}) => {
+  const config = await getConfig();
+
+  const order = input.sampleOrderId
+    ? await Order.findById(input.sampleOrderId).populate("items.productId")
+    : await Order.findOne().sort({ createdAt: -1 }).populate("items.productId");
+
+  if (input.statusRuleId) {
+    const rule = config.statusRules.find(
+      (r) => String(r._id) === input.statusRuleId,
+    );
+
+    if (!rule) {
+      throw new AppError(httpStatus.NOT_FOUND, "Status rule not found");
+    }
+
+    if (!order) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "No order exists yet to preview this rule against",
+      );
+    }
+
+    return buildOrderEventPayload({
+      order: order.toObject() as never,
+      config,
+      eventName: rule.eventName,
+      eventId: `${order._id}:${rule.eventName}`,
+      eventTime: new Date(),
+    });
+  }
+
+  const trigger = config.triggers.find((t) => t.key === input.triggerKey);
+
+  if (!trigger) {
+    throw new AppError(httpStatus.NOT_FOUND, "Trigger not found");
+  }
+
+  if (trigger.key === "checkout_success" && order) {
+    return buildOrderEventPayload({
+      order: order.toObject() as never,
+      config,
+      eventName: trigger.eventName,
+      eventId: `${order._id}:${trigger.eventName}`,
+      eventTime: new Date(),
+    });
+  }
+
+  return buildTriggerEventPayload({
+    config,
+    eventName: trigger.eventName,
+    eventId: "sample-event-id",
+    eventTime: new Date(),
+    userData: {
+      client_ip_address: "203.0.113.7",
+      client_user_agent: "Mozilla/5.0 (sample)",
+      fbp: "fb.1.1757370000000.1234567890",
+    },
+    custom: { content_type: config.contentType },
+    eventSourceUrl: "https://example.com/sample",
+  });
+};
+
 export const MetaPixelService = {
   getConfig,
   getAdminConfig,
   getPublicConfig,
   updateConfig,
+  previewPayload,
 };

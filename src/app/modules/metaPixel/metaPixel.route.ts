@@ -26,6 +26,14 @@ router.put(
   MetaPixelController.updateConfig,
 );
 
+router.post(
+  "/preview-payload",
+  validateAuth(),
+  checkPermission(EAppModules.marketing, "can_read_marketing"),
+  validateRequest(MetaPixelValidation.PreviewPayloadSchema),
+  MetaPixelController.previewPayload,
+);
+
 const MetaPixelRoutes = router;
 
 export default MetaPixelRoutes;
