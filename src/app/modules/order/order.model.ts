@@ -55,6 +55,48 @@ const orderItemSchema = new Schema<IOrderItem>({
   },
 });
 
+// Meta CAPI dispatch log for a single event tied to this order
+const sentEventSchema = new Schema(
+  {
+    eventName: { type: String, required: true },
+    eventId: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["queued", "sent", "failed", "dead"],
+      default: "queued",
+    },
+    attempts: { type: Number, default: 0 },
+    sentAt: { type: Date },
+    fbtraceId: { type: String },
+    errorMessage: { type: String },
+  },
+  { _id: false }
+);
+
+// Meta identifiers + hashed identity captured once at order creation for delayed Purchase matching
+const trackingDataSchema = new Schema(
+  {
+    fbp: { type: String },
+    fbc: { type: String },
+    clientIp: { type: String },
+    userAgent: { type: String },
+    eventSourceUrl: { type: String },
+    hashed: {
+      em: { type: String },
+      ph: { type: String },
+      fn: { type: String },
+      ln: { type: String },
+      ct: { type: String },
+      st: { type: String },
+      zp: { type: String },
+      country: { type: String },
+      external_id: { type: String },
+    },
+    sentEvents: { type: [sentEventSchema], default: [] },
+  },
+  { _id: false }
+);
+
 // Status History Schema
 const statusHistorySchema = new Schema<IStatusHistory>(
   {
@@ -204,6 +246,7 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       trim: true,
     },
+    trackingData: { type: trackingDataSchema },
   },
   {
     timestamps: true,

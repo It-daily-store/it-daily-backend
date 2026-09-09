@@ -8,7 +8,10 @@ const addOrder = catchAsync(async (req, res) => {
 
   const user = req.user.userData;
 
-  const result = await OrderServices.addOrderToDB(data, user._id, user);
+  const result = await OrderServices.addOrderToDB(data, user._id, user, {
+    clientIp: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
 
   sendResponse(res, {
     success: true,

@@ -30,6 +30,15 @@ const createOrderValidationSchema = z.object({
   }),
   notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
   saveAddress: z.boolean().optional(),
+  tracking: z
+    .object({
+      fbp: z.string().trim().max(100).optional(),
+      fbc: z.string().trim().max(255).optional(),
+      fbclid: z.string().trim().max(255).optional(),
+      eventSourceUrl: z.string().trim().max(500).optional(),
+      eventId: z.string().trim().max(100).optional(),
+    })
+    .optional(),
 });
 
 const OrderStatusEnum = z.enum([
