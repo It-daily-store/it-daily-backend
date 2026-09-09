@@ -21,6 +21,7 @@ export const MODULE_LABELS: Record<EAppModules, string> = {
   [EAppModules.productDetails]: "Detail Categories",
   [EAppModules.bulkUpload]: "Bulk Upload",
   [EAppModules.settings]: "Settings",
+  [EAppModules.marketing]: "Marketing",
 };
 
 export const PERMISSION_CATALOG = {
@@ -257,6 +258,33 @@ export const PERMISSION_CATALOG = {
     },
     { key: "can_read_settings", label: "View settings", legacy: "read" },
     { key: "can_update_settings", label: "Update settings", legacy: "update" },
+  ],
+  [EAppModules.marketing]: [
+    {
+      key: "can_see_meta_pixel_page",
+      label: "See Meta pixel page",
+      legacy: "read",
+    },
+    {
+      key: "can_read_marketing",
+      label: "View Meta pixel configuration",
+      legacy: "read",
+    },
+    {
+      key: "can_update_marketing",
+      label: "Update Meta pixel configuration",
+      legacy: "update",
+    },
+    {
+      key: "can_read_meta_pixel_logs",
+      label: "View Meta pixel event log",
+      legacy: "read",
+    },
+    {
+      key: "can_retry_meta_pixel_event",
+      label: "Retry a failed Meta pixel event",
+      legacy: "update",
+    },
   ],
 } as const satisfies Record<EAppModules, readonly TPermissionDef[]>;
 
