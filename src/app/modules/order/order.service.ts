@@ -547,6 +547,10 @@ const adminUpdateOrderToDB = async (
   id: string,
   updateData: Partial<IOrder> & { adminNotes?: string }
 ) => {
+  // trackingData is the write-once Meta snapshot taken at order creation; never let an update overwrite it
+  const { trackingData: _ignoredTrackingData, ...safeUpdateData } =
+    updateData;
+
   const order = await Order.findById(id);
   if (!order) throw new Error("Order not found");
 
@@ -579,14 +583,15 @@ const adminUpdateOrderToDB = async (
     id,
     {
       $set: {
-        ...updateData,
-        shippingAddress: updateData.shippingAddress,
-        billingAddress: updateData.billingAddress || updateData.shippingAddress,
-        currentStatus: updateData.currentStatus || order.currentStatus,
-        paymentStatus: updateData.paymentStatus || order.paymentStatus,
-        paymentMethod: updateData.paymentMethod || order.paymentMethod,
-        shippingMethod: updateData.shippingMethod || order.shippingMethod,
-        trackingNumber: updateData.trackingNumber,
+        ...safeUpdateData,
+        shippingAddress: safeUpdateData.shippingAddress,
+        billingAddress:
+          safeUpdateData.billingAddress || safeUpdateData.shippingAddress,
+        currentStatus: safeUpdateData.currentStatus || order.currentStatus,
+        paymentStatus: safeUpdateData.paymentStatus || order.paymentStatus,
+        paymentMethod: safeUpdateData.paymentMethod || order.paymentMethod,
+        shippingMethod: safeUpdateData.shippingMethod || order.shippingMethod,
+        trackingNumber: safeUpdateData.trackingNumber,
       },
       ...(updateData.currentStatus && { statusHistory: order.statusHistory }),
     },
