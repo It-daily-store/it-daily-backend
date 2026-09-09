@@ -350,11 +350,12 @@ const onOrderStatusChanged = async (
 
     for (const rule of rules) {
       const already = order.trackingData?.sentEvents?.find(
-        (entry) =>
-          entry.eventName === rule.eventName && entry.status !== "dead",
+        (entry) => entry.eventName === rule.eventName,
       );
 
-      // A status flipped away and back must not fire a second time.
+      // A rule never fires twice for the same order+event, even after a dead
+      // send — re-sending after a permanent failure is a deliberate admin
+      // action from the event log, not something a status change triggers.
       if (already) {
         continue;
       }
