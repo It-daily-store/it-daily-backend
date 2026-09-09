@@ -22,6 +22,7 @@ import { EmailJobName, emailQueue } from "../../queues/email.queue";
 import { IAddress } from "../address/address.interface";
 import { IOrderTrackingData } from "../metaPixel/metaPixel.interface";
 import { hashIdentity, buildFbc } from "../metaPixel/metaPixel.identity";
+import { MetaPixelService } from "../metaPixel/metaPixel.service";
 
 let stripe: Stripe | null = null;
 
@@ -626,6 +627,13 @@ const adminUpdateOrderToDB = async (
       console.log(err);
     }
   }
+  if (statusChanged && updateData.currentStatus) {
+    void MetaPixelService.onOrderStatusChanged(
+      order._id,
+      String(updateData.currentStatus)
+    );
+  }
+
   return updatedOrder;
 };
 

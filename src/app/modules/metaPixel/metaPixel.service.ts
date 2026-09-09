@@ -12,6 +12,7 @@ import { sendToMeta } from "./metaPixel.sender";
 import {
   buildOrderEventPayload,
   buildTriggerEventPayload,
+  hasUsableIdentity,
 } from "./metaPixel.payload";
 
 const defaultTriggers = () =>
@@ -318,6 +319,101 @@ const testConnection = async () => {
   };
 };
 
+const onOrderStatusChanged = async (
+  orderId: Types.ObjectId,
+  newStatus: string,
+): Promise<void> => {
+  try {
+    const config = await getConfig();
+
+    if (!config.enabled || !config.capiEnabled) {
+      return;
+    }
+
+    const rules = config.statusRules.filter(
+      (rule) => rule.enabled && rule.status === newStatus,
+    );
+
+    if (!rules.length) {
+      return;
+    }
+
+    const order = await Order.findById(orderId).populate("items.productId");
+
+    if (!order) {
+      return;
+    }
+
+    // Lazy import: metaPixel.queue.ts imports this service at the top level,
+    // so a top-level import here would create a circular require.
+    const { enqueueMetaEvent } = await import("./metaPixel.queue");
+
+    for (const rule of rules) {
+      const already = order.trackingData?.sentEvents?.find(
+        (entry) =>
+          entry.eventName === rule.eventName && entry.status !== "dead",
+      );
+
+      // A status flipped away and back must not fire a second time.
+      if (already) {
+        continue;
+      }
+
+      const eventId = `${order._id}:${rule.eventName}`;
+      const payload = buildOrderEventPayload({
+        order: order.toObject() as never,
+        config,
+        eventName: rule.eventName,
+        eventId,
+        eventTime: new Date(),
+      });
+
+      const log = await MetaPixelEventLog.create({
+        eventName: rule.eventName,
+        eventId,
+        source: "status_rule",
+        orderId: order._id,
+        payload,
+        status: "queued",
+      });
+
+      // An order created before this feature existed has no identity data, so
+      // Meta could never match the event. Record it instead of sending noise.
+      if (!hasUsableIdentity(payload.data[0].user_data)) {
+        await MetaPixelEventLog.findByIdAndUpdate(log._id, {
+          status: "dead",
+          errorMessage: "Order has no tracking data to match against",
+        });
+        continue;
+      }
+
+      await Order.updateOne(
+        { _id: order._id },
+        {
+          $push: {
+            "trackingData.sentEvents": {
+              eventName: rule.eventName,
+              eventId,
+              status: "queued",
+              attempts: 0,
+            },
+          },
+        },
+      );
+
+      await enqueueMetaEvent({
+        logId: String(log._id),
+        orderId: String(order._id),
+        eventName: rule.eventName,
+        eventId,
+      });
+    }
+  } catch (err) {
+    // Tracking must never break an order status update.
+    console.log("meta pixel status rule error", err);
+  }
+};
+
 export const MetaPixelService = {
   getConfig,
   getAdminConfig,
@@ -325,4 +421,5 @@ export const MetaPixelService = {
   updateConfig,
   previewPayload,
   testConnection,
+  onOrderStatusChanged,
 };
