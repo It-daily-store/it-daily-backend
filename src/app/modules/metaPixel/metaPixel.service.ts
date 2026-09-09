@@ -369,27 +369,26 @@ const onOrderStatusChanged = async (
         eventTime: new Date(),
       });
 
-      const log = await MetaPixelEventLog.create({
-        eventName: rule.eventName,
-        eventId,
-        source: "status_rule",
-        orderId: order._id,
-        payload,
-        status: "queued",
-      });
-
       // An order created before this feature existed has no identity data, so
       // Meta could never match the event. Record it instead of sending noise.
       if (!hasUsableIdentity(payload.data[0].user_data)) {
-        await MetaPixelEventLog.findByIdAndUpdate(log._id, {
+        await MetaPixelEventLog.create({
+          eventName: rule.eventName,
+          eventId,
+          source: "status_rule",
+          orderId: order._id,
+          payload,
           status: "dead",
           errorMessage: "Order has no tracking data to match against",
         });
         continue;
       }
 
-      await Order.updateOne(
-        { _id: order._id },
+      const claim = await Order.updateOne(
+        {
+          _id: order._id,
+          "trackingData.sentEvents.eventName": { $ne: rule.eventName },
+        },
         {
           $push: {
             "trackingData.sentEvents": {
@@ -401,6 +400,20 @@ const onOrderStatusChanged = async (
           },
         },
       );
+
+      // Losing this race means another invocation already claimed this event.
+      if (claim.modifiedCount === 0) {
+        continue;
+      }
+
+      const log = await MetaPixelEventLog.create({
+        eventName: rule.eventName,
+        eventId,
+        source: "status_rule",
+        orderId: order._id,
+        payload,
+        status: "queued",
+      });
 
       await enqueueMetaEvent({
         logId: String(log._id),
