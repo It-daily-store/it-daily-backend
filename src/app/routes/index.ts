@@ -21,6 +21,7 @@ import SettingsRoute from "../modules/settings/settings.route";
 import dashboardRoutes from "../modules/dashboard/dashboard.route";
 import { BannerRoutes } from "../modules/banner/banner.routes";
 import { SavedBuildRoutes } from "../modules/savedBuild/savedBuild.route";
+import MetaPixelRoutes from "../modules/metaPixel/metaPixel.route";
 
 const router = Router();
 
@@ -49,10 +50,16 @@ const moduleRoutes = [
   { path: "/settings", route: SettingsRoute },
   { path: "/dashboard", route: dashboardRoutes },
   { path: "/banner", route: BannerRoutes },
+  { path: "/meta-pixel", route: MetaPixelRoutes },
 ];
 
 moduleRoutes.forEach((route) => {
-  if (route.path === "/auth" || route.path === "/customer" || route.path === "/banner") {
+  if (
+    route.path === "/auth" ||
+    route.path === "/customer" ||
+    route.path === "/banner" ||
+    route.path === "/meta-pixel"
+  ) {
     router.use(route.path, route.route);
   } else {
     router.use(route.path, validateAuth(), route.route);
