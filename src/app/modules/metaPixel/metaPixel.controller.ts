@@ -48,9 +48,23 @@ const previewPayload = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const testConnection = catchAsync(async (req: Request, res: Response) => {
+  const result = await MetaPixelService.testConnection();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.ok
+      ? "Test event accepted by Meta"
+      : "Meta rejected the test event",
+    data: result,
+  });
+});
+
 export const MetaPixelController = {
   getPublicConfig,
   getConfig,
   updateConfig,
   previewPayload,
+  testConnection,
 };

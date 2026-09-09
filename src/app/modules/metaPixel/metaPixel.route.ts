@@ -34,6 +34,13 @@ router.post(
   MetaPixelController.previewPayload,
 );
 
+router.post(
+  "/test-connection",
+  validateAuth(),
+  checkPermission(EAppModules.marketing, "can_update_marketing"),
+  MetaPixelController.testConnection,
+);
+
 const MetaPixelRoutes = router;
 
 export default MetaPixelRoutes;

@@ -7,6 +7,8 @@ import { isIpExcluded } from "./metaPixel.identity";
 import { BACKEND_VISIBLE_KEYS, TRIGGER_REGISTRY } from "./metaPixel.constants";
 import { IMetaPixelConfig } from "./metaPixel.interface";
 import MetaPixelConfig from "./metaPixel.model";
+import MetaPixelEventLog from "./metaPixelEventLog.model";
+import { sendToMeta } from "./metaPixel.sender";
 import {
   buildOrderEventPayload,
   buildTriggerEventPayload,
@@ -254,10 +256,75 @@ const previewPayload = async (input: {
   });
 };
 
+const testConnection = async () => {
+  const doc = await getConfigDocument();
+
+  if (!doc.pixelId || !doc.accessToken) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Save a pixel ID and access token before testing the connection",
+    );
+  }
+
+  const config = await getConfig();
+  const eventId = `test-connection:${Date.now()}`;
+
+  const payload = buildTriggerEventPayload({
+    config,
+    eventName: "PageView",
+    eventId,
+    eventTime: new Date(),
+    userData: {
+      client_ip_address: "203.0.113.7",
+      client_user_agent: "DailyIt-Admin-TestConnection/1.0",
+    },
+  });
+
+  const log = await MetaPixelEventLog.create({
+    eventName: "PageView",
+    eventId,
+    source: "test_connection",
+    payload,
+    status: "queued",
+  });
+
+  // Sent inline, not queued: the admin is waiting for this answer.
+  const result = await sendToMeta({
+    pixelId: config.pixelId as string,
+    accessToken: config.accessToken as string,
+    payload,
+  });
+
+  await MetaPixelEventLog.findByIdAndUpdate(log._id, {
+    status: result.ok ? "sent" : "dead",
+    attempts: 1,
+    httpStatus: result.httpStatus,
+    metaResponse: result.body,
+    fbtraceId: result.fbtraceId,
+    errorMessage: result.errorMessage,
+  });
+
+  if (result.ok) {
+    doc.tokenVerifiedAt = new Date();
+    await doc.save();
+  }
+
+  return {
+    ok: result.ok,
+    httpStatus: result.httpStatus,
+    fbtraceId: result.fbtraceId,
+    errorMessage: result.errorMessage,
+    response: result.body,
+    testEventCode: config.testEventCode || null,
+    tokenVerifiedAt: doc.tokenVerifiedAt,
+  };
+};
+
 export const MetaPixelService = {
   getConfig,
   getAdminConfig,
   getPublicConfig,
   updateConfig,
   previewPayload,
+  testConnection,
 };

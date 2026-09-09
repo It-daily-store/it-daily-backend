@@ -10,6 +10,7 @@ import {
   productQueue,
 } from "./app/modules/product/product.queue";
 import { DealJobName, dealQueue } from "./app/modules/deals/deal.queue";
+import "./app/modules/metaPixel/metaPixel.queue";
 
 let server: Server;
 
