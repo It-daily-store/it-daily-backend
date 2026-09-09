@@ -85,7 +85,11 @@ const buildUserDataFromOrder = (order: IOrder): TCapiUserData => {
 };
 
 export const hasUsableIdentity = (userData: TCapiUserData): boolean =>
-  Object.keys(userData).length > 0;
+  Object.values(userData).some((value) =>
+    Array.isArray(value)
+      ? value.some((v) => typeof v === "string" && v.length > 0)
+      : typeof value === "string" && value.length > 0,
+  );
 
 export const buildOrderEventPayload = (args: {
   order: IOrder;
