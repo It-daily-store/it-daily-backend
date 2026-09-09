@@ -48,11 +48,21 @@ const updateLedger = async (
     {},
   );
 
-  await Order.updateOne(
-    { _id: new Types.ObjectId(orderId) },
-    { $set: set },
-    { arrayFilters: [{ "entry.eventName": eventName }] },
-  );
+  try {
+    await Order.updateOne(
+      { _id: new Types.ObjectId(orderId) },
+      { $set: set },
+      { arrayFilters: [{ "entry.eventName": eventName }] },
+    );
+  } catch (err) {
+    // A missing trackingData.sentEvents array (pre-feature orders) is a
+    // legitimate state, not a reason to fail the job's own send outcome.
+    console.error(
+      `metaPixel updateLedger skipped for order ${orderId}: ${
+        err instanceof Error ? err.message : "unknown error"
+      }`,
+    );
+  }
 };
 
 export const enqueueMetaEvent = async (job: TMetaEventJob) => {

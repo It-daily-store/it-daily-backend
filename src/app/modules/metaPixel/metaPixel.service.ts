@@ -280,14 +280,6 @@ const testConnection = async () => {
     },
   });
 
-  const log = await MetaPixelEventLog.create({
-    eventName: "PageView",
-    eventId,
-    source: "test_connection",
-    payload,
-    status: "queued",
-  });
-
   // Sent inline, not queued: the admin is waiting for this answer.
   const result = await sendToMeta({
     pixelId: config.pixelId as string,
@@ -295,7 +287,13 @@ const testConnection = async () => {
     payload,
   });
 
-  await MetaPixelEventLog.findByIdAndUpdate(log._id, {
+  // Written once, after the outcome is known — sendToMeta never throws, so
+  // there is no window where a row sits at "queued" with no final status.
+  await MetaPixelEventLog.create({
+    eventName: "PageView",
+    eventId,
+    source: "test_connection",
+    payload,
     status: result.ok ? "sent" : "dead",
     attempts: 1,
     httpStatus: result.httpStatus,
