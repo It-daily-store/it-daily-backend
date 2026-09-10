@@ -61,10 +61,57 @@ const testConnection = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const ingestEvent = catchAsync(async (req: Request, res: Response) => {
+  const result = await MetaPixelService.ingestBrowserEvent(req.body, {
+    clientIp: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Event processed",
+    data: result,
+  });
+});
+
+const getLogs = catchAsync(async (req: Request, res: Response) => {
+  const result = await MetaPixelService.getLogs(
+    req.query as Record<string, string>,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Meta pixel event logs retrived successfully",
+    data: result.data,
+    pagination: {
+      currentPage: result.pagination.page,
+      limit: result.pagination.limit,
+      total: result.pagination.total,
+      totalPage: result.pagination.totalPage,
+    },
+  });
+});
+
+const retryLog = catchAsync(async (req: Request, res: Response) => {
+  const result = await MetaPixelService.retryLog(req.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Event re-queued",
+    data: result,
+  });
+});
+
 export const MetaPixelController = {
   getPublicConfig,
   getConfig,
   updateConfig,
   previewPayload,
   testConnection,
+  ingestEvent,
+  getLogs,
+  retryLog,
 };

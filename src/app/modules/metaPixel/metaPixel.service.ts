@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import AppError from "../../errors/AppError";
 import Order from "../order/order.model";
 import { decryptToken, encryptToken, maskToken } from "./metaPixel.crypto";
-import { isIpExcluded } from "./metaPixel.identity";
+import { isBotUserAgent, isIpExcluded } from "./metaPixel.identity";
 import { BACKEND_VISIBLE_KEYS, TRIGGER_REGISTRY } from "./metaPixel.constants";
 import { IMetaPixelConfig } from "./metaPixel.interface";
 import MetaPixelConfig from "./metaPixel.model";
@@ -449,6 +449,168 @@ const onOrderStatusChanged = async (
   }
 };
 
+const ingestBrowserEvent = async (
+  input: {
+    triggerKey: string;
+    eventId: string;
+    orderId?: string;
+    custom?: Record<string, unknown>;
+    eventSourceUrl?: string;
+  },
+  meta: { clientIp?: string; userAgent?: string },
+) => {
+  const config = await getConfig();
+
+  if (!config.enabled || !config.capiEnabled) {
+    return { accepted: false, reason: "tracking disabled" };
+  }
+
+  const trigger = config.triggers.find((t) => t.key === input.triggerKey);
+
+  // Only a trigger the admin explicitly opted into may be sent server-side.
+  if (!trigger?.enabled || !trigger.sendViaCapi || !trigger.eventName) {
+    return { accepted: false, reason: "trigger not enabled for CAPI" };
+  }
+
+  if (isIpExcluded(meta.clientIp, config.excludedIps)) {
+    return { accepted: false, reason: "excluded ip" };
+  }
+
+  if (config.blockBots && isBotUserAgent(meta.userAgent)) {
+    return { accepted: false, reason: "bot user agent" };
+  }
+
+  const order = input.orderId
+    ? await Order.findById(input.orderId).populate("items.productId")
+    : null;
+
+  if (input.orderId && !order) {
+    return { accepted: false, reason: "unknown order" };
+  }
+
+  const payload = order
+    ? buildOrderEventPayload({
+        order: order.toObject() as never,
+        config,
+        eventName: trigger.eventName,
+        eventId: input.eventId,
+        eventTime: new Date(),
+      })
+    : buildTriggerEventPayload({
+        config,
+        eventName: trigger.eventName,
+        eventId: input.eventId,
+        eventTime: new Date(),
+        userData: {
+          client_ip_address: meta.clientIp,
+          client_user_agent: meta.userAgent,
+        },
+        custom: input.custom,
+        eventSourceUrl: input.eventSourceUrl,
+      });
+
+  const log = await MetaPixelEventLog.create({
+    eventName: trigger.eventName,
+    eventId: input.eventId,
+    source: "browser_backup",
+    orderId: order?._id,
+    triggerKey: trigger.key,
+    payload,
+    status: "queued",
+  });
+
+  const { enqueueMetaEvent } = await import("./metaPixel.queue");
+
+  await enqueueMetaEvent({
+    logId: String(log._id),
+    orderId: order ? String(order._id) : undefined,
+    eventName: trigger.eventName,
+    eventId: input.eventId,
+  });
+
+  return { accepted: true };
+};
+
+const getLogs = async (query: {
+  page?: string;
+  limit?: string;
+  status?: string;
+  eventName?: string;
+  source?: string;
+  from?: string;
+  to?: string;
+}) => {
+  const page = Math.max(Number(query.page ?? 1), 1);
+  const limit = Math.min(Math.max(Number(query.limit ?? 20), 1), 100);
+
+  const filter: Record<string, unknown> = {};
+
+  if (query.status) filter.status = query.status;
+  if (query.eventName) filter.eventName = query.eventName;
+  if (query.source) filter.source = query.source;
+
+  if (query.from || query.to) {
+    filter.createdAt = {
+      ...(query.from ? { $gte: new Date(query.from) } : {}),
+      ...(query.to ? { $lte: new Date(query.to) } : {}),
+    };
+  }
+
+  const [data, total] = await Promise.all([
+    MetaPixelEventLog.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("orderId", "orderNumber")
+      .lean(),
+    MetaPixelEventLog.countDocuments(filter),
+  ]);
+
+  return {
+    data,
+    pagination: { page, limit, total, totalPage: Math.ceil(total / limit) },
+  };
+};
+
+const retryLog = async (logId: string) => {
+  const log = await MetaPixelEventLog.findById(logId);
+
+  if (!log) {
+    throw new AppError(httpStatus.NOT_FOUND, "Event log not found");
+  }
+
+  if (log.status === "sent") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This event was already accepted by Meta",
+    );
+  }
+
+  await MetaPixelEventLog.findByIdAndUpdate(logId, {
+    status: "queued",
+    errorMessage: undefined,
+  });
+
+  if (log.orderId) {
+    await Order.updateOne(
+      { _id: log.orderId },
+      { $set: { "trackingData.sentEvents.$[entry].status": "queued" } },
+      { arrayFilters: [{ "entry.eventName": log.eventName }] },
+    );
+  }
+
+  const { enqueueMetaEvent } = await import("./metaPixel.queue");
+
+  await enqueueMetaEvent({
+    logId: String(log._id),
+    orderId: log.orderId ? String(log.orderId) : undefined,
+    eventName: log.eventName,
+    eventId: log.eventId,
+  });
+
+  return { queued: true };
+};
+
 export const MetaPixelService = {
   getConfig,
   getAdminConfig,
@@ -457,4 +619,7 @@ export const MetaPixelService = {
   previewPayload,
   testConnection,
   onOrderStatusChanged,
+  ingestBrowserEvent,
+  getLogs,
+  retryLog,
 };

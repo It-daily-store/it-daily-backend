@@ -83,4 +83,16 @@ const PreviewPayloadSchema = z
     message: "Provide exactly one of triggerKey or statusRuleId",
   });
 
-export const MetaPixelValidation = { UpdateConfigSchema, PreviewPayloadSchema };
+const IngestEventSchema = z.object({
+  triggerKey: z.enum(TRIGGER_KEYS as [string, ...string[]]),
+  eventId: z.string().trim().min(1).max(100),
+  orderId: z.string().trim().optional(),
+  eventSourceUrl: z.string().trim().max(500).optional(),
+  custom: z.record(z.unknown()).optional(),
+});
+
+export const MetaPixelValidation = {
+  UpdateConfigSchema,
+  PreviewPayloadSchema,
+  IngestEventSchema,
+};
