@@ -623,11 +623,21 @@ const retryLog = async (logId: string) => {
   });
 
   if (log.orderId) {
-    await Order.updateOne(
-      { _id: log.orderId },
-      { $set: { "trackingData.sentEvents.$[entry].status": "queued" } },
-      { arrayFilters: [{ "entry.eventName": log.eventName }] },
-    );
+    try {
+      await Order.updateOne(
+        { _id: log.orderId },
+        { $set: { "trackingData.sentEvents.$[entry].status": "queued" } },
+        { arrayFilters: [{ "entry.eventName": log.eventName }] },
+      );
+    } catch (err) {
+      // A missing trackingData.sentEvents array (pre-feature orders) is a
+      // legitimate state, not a reason to fail the retry itself.
+      console.error(
+        `metaPixel retryLog ledger reset skipped for order ${log.orderId}: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+      );
+    }
   }
 
   const { enqueueMetaEvent } = await import("./metaPixel.queue");
