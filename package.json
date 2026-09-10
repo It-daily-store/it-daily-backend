@@ -18,7 +18,8 @@
     "redis:stop": "docker stop redis-6380",
     "redis:rm": "docker rm redis-6380",
     "clean:status-notes": "ts-node src/scripts/clearGeneratedStatusNotes.ts",
-    "verify:meta-pixel": "ts-node src/scripts/verifyMetaPixelIdentity.ts"
+    "verify:meta-pixel": "ts-node src/scripts/verifyMetaPixelIdentity.ts",
+    "grant:marketing": "ts-node src/scripts/grantMarketingPermissions.ts"
   },
   "author": "",
   "license": "ISC",
