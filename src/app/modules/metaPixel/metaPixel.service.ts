@@ -406,21 +406,42 @@ const onOrderStatusChanged = async (
         continue;
       }
 
-      const log = await MetaPixelEventLog.create({
-        eventName: rule.eventName,
-        eventId,
-        source: "status_rule",
-        orderId: order._id,
-        payload,
-        status: "queued",
-      });
+      let log;
 
-      await enqueueMetaEvent({
-        logId: String(log._id),
-        orderId: String(order._id),
-        eventName: rule.eventName,
-        eventId,
-      });
+      try {
+        log = await MetaPixelEventLog.create({
+          eventName: rule.eventName,
+          eventId,
+          source: "status_rule",
+          orderId: order._id,
+          payload,
+          status: "queued",
+        });
+
+        await enqueueMetaEvent({
+          logId: String(log._id),
+          orderId: String(order._id),
+          eventName: rule.eventName,
+          eventId,
+        });
+      } catch (err) {
+        // The claim must not outlive a failed hand-off, or the guard blocks this event forever.
+        await Order.updateOne(
+          { _id: order._id },
+          { $pull: { "trackingData.sentEvents": { eventId } } },
+        );
+
+        if (log) {
+          await MetaPixelEventLog.findByIdAndUpdate(log._id, {
+            status: "dead",
+            errorMessage: `Failed to enqueue after claim: ${
+              err instanceof Error ? err.message : "unknown"
+            }`,
+          });
+        }
+
+        continue;
+      }
     }
   } catch (err) {
     // Tracking must never break an order status update.
