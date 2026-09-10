@@ -449,6 +449,32 @@ const onOrderStatusChanged = async (
   }
 };
 
+// validateRequest never reassigns req.body from the zod parse result, so an
+// allow-list in the schema alone would not stop unknown keys from reaching
+// Meta here — the pick below is what actually enforces it.
+const ALLOWED_CUSTOM_KEYS = [
+  "content_ids",
+  "content_type",
+  "content_name",
+  "content_category",
+  "search_string",
+  "value",
+  "num_items",
+  "contents",
+] as const;
+
+const pickAllowedCustom = (
+  custom?: Record<string, unknown>,
+): Record<string, unknown> | undefined => {
+  if (!custom) return undefined;
+
+  const picked: Record<string, unknown> = {};
+  for (const key of ALLOWED_CUSTOM_KEYS) {
+    if (custom[key] !== undefined) picked[key] = custom[key];
+  }
+  return picked;
+};
+
 const ingestBrowserEvent = async (
   input: {
     triggerKey: string;
@@ -505,7 +531,7 @@ const ingestBrowserEvent = async (
           client_ip_address: meta.clientIp,
           client_user_agent: meta.userAgent,
         },
-        custom: input.custom,
+        custom: pickAllowedCustom(input.custom),
         eventSourceUrl: input.eventSourceUrl,
       });
 
@@ -540,8 +566,13 @@ const getLogs = async (query: {
   from?: string;
   to?: string;
 }) => {
-  const page = Math.max(Number(query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(query.limit ?? 20), 1), 100);
+  const parsedPage = Number(query.page);
+  const parsedLimit = Number(query.limit);
+  const page = Math.max(Number.isFinite(parsedPage) ? parsedPage : 1, 1);
+  const limit = Math.min(
+    Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 20, 1),
+    100,
+  );
 
   const filter: Record<string, unknown> = {};
 

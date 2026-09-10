@@ -88,7 +88,27 @@ const IngestEventSchema = z.object({
   eventId: z.string().trim().min(1).max(100),
   orderId: z.string().trim().optional(),
   eventSourceUrl: z.string().trim().max(500).optional(),
-  custom: z.record(z.unknown()).optional(),
+  custom: z
+    .object({
+      content_ids: z.array(z.string().trim().max(100)).max(100).optional(),
+      content_type: z.string().trim().max(50).optional(),
+      content_name: z.string().trim().max(200).optional(),
+      content_category: z.string().trim().max(200).optional(),
+      search_string: z.string().trim().max(200).optional(),
+      value: z.number().finite().nonnegative().optional(),
+      num_items: z.number().int().nonnegative().max(10000).optional(),
+      contents: z
+        .array(
+          z.object({
+            id: z.string().trim().max(100),
+            quantity: z.number().int().nonnegative().max(10000),
+            item_price: z.number().finite().nonnegative(),
+          }),
+        )
+        .max(100)
+        .optional(),
+    })
+    .optional(),
 });
 
 export const MetaPixelValidation = {

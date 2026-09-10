@@ -162,7 +162,7 @@ export const buildTriggerEventPayload = (args: {
         action_source: "website",
         event_source_url: eventSourceUrl,
         user_data: userData,
-        custom_data: { currency: config.currency, ...custom },
+        custom_data: { ...custom, currency: config.currency },
       },
     ],
     test_event_code: config.testEventCode || undefined,
