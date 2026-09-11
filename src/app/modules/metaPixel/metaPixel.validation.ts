@@ -90,7 +90,9 @@ const IngestEventSchema = z.object({
   eventSourceUrl: z.string().trim().max(500).optional(),
   custom: z
     .object({
-      content_ids: z.array(z.string().trim().max(100)).max(100).optional(),
+      // Product SKUs here are derived from product names and already reach 104
+      // characters, so a 100-cap silently rejected real catalogue items.
+      content_ids: z.array(z.string().trim().max(256)).max(100).optional(),
       content_type: z.string().trim().max(50).optional(),
       content_name: z.string().trim().max(200).optional(),
       content_category: z.string().trim().max(200).optional(),
@@ -100,7 +102,7 @@ const IngestEventSchema = z.object({
       contents: z
         .array(
           z.object({
-            id: z.string().trim().max(100),
+            id: z.string().trim().max(256),
             quantity: z.number().int().nonnegative().max(10000),
             item_price: z.number().finite().nonnegative(),
           }),
