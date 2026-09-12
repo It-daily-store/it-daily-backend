@@ -17,7 +17,9 @@
     "redis:up": "docker run -d --name redis-6380 -p 6380:6380 redis redis-server --port 6380",
     "redis:stop": "docker stop redis-6380",
     "redis:rm": "docker rm redis-6380",
-    "clean:status-notes": "ts-node src/scripts/clearGeneratedStatusNotes.ts"
+    "clean:status-notes": "ts-node src/scripts/clearGeneratedStatusNotes.ts",
+    "verify:meta-pixel": "ts-node src/scripts/verifyMetaPixelIdentity.ts",
+    "grant:marketing": "ts-node src/scripts/grantMarketingPermissions.ts"
   },
   "author": "",
   "license": "ISC",
@@ -37,6 +39,7 @@
     "dotenv": "^16.4.5",
     "env-cmd": "^11.0.0",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
     "http-status": "^1.7.4",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",

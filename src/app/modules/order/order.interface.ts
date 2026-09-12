@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { IAddress } from "../address/address.interface";
+import { IOrderTrackingData } from "../metaPixel/metaPixel.interface";
 
 // Interface for Order Item
 export interface IOrderItem {
@@ -74,6 +75,7 @@ export interface IOrder {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  trackingData?: IOrderTrackingData;
 }
 
 export type AddOrderPayload = {
@@ -91,4 +93,11 @@ export type AddOrderPayload = {
   shippingMethod: "standard" | "express" | "overnight";
   notes?: string;
   saveAddress?: boolean;
+  tracking?: {
+    fbp?: string;
+    fbc?: string;
+    fbclid?: string;
+    eventSourceUrl?: string;
+    eventId?: string;
+  };
 };

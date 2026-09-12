@@ -19,6 +19,10 @@ import { AddressService } from "../address/address.service";
 import Deal from "../deals/deals.model";
 import FlashSale from "../flashSales/flashSale.model";
 import { EmailJobName, emailQueue } from "../../queues/email.queue";
+import { IAddress } from "../address/address.interface";
+import { IOrderTrackingData } from "../metaPixel/metaPixel.interface";
+import { hashIdentity, buildFbc } from "../metaPixel/metaPixel.identity";
+import { MetaPixelService } from "../metaPixel/metaPixel.service";
 
 let stripe: Stripe | null = null;
 
@@ -107,10 +111,45 @@ export const paymentWebhook = async (req: Request, res: Response) => {
   }
 };
 
+// Snapshot the Meta identifiers + hashed identity once at order creation so a
+// Purchase event fired days later (no browser present) can still be matched.
+const buildTrackingSnapshot = (args: {
+  tracking?: AddOrderPayload["tracking"];
+  clientIp?: string;
+  userAgent?: string;
+  user: TUser;
+  shippingAddress: IAddress;
+}): IOrderTrackingData => {
+  const { tracking, clientIp, userAgent, user, shippingAddress } = args;
+
+  return {
+    fbp: tracking?.fbp,
+    // _fbc already carries the real ad-click timestamp; only synthesise one when a bare fbclid arrived with no cookie
+    fbc:
+      tracking?.fbc ??
+      (tracking?.fbclid ? buildFbc(tracking.fbclid, Date.now()) : undefined),
+    clientIp,
+    userAgent,
+    eventSourceUrl: tracking?.eventSourceUrl,
+    hashed: {
+      em: hashIdentity(user.email, "em"),
+      ph: hashIdentity(user.phoneNumber, "ph"),
+      fn: hashIdentity(user.name?.firstName, "fn"),
+      ln: hashIdentity(user.name?.lastName, "ln"),
+      ct: hashIdentity(shippingAddress?.city, "ct"),
+      st: hashIdentity(shippingAddress?.district, "st"),
+      country: hashIdentity("BD", "country"),
+      external_id: hashIdentity(String(user._id), "external_id"),
+    },
+    sentEvents: [],
+  };
+};
+
 const addOrderToDB = async (
   data: AddOrderPayload,
   user: Types.ObjectId,
-  customer: TUser
+  customer: TUser,
+  requestMeta?: { clientIp?: string; userAgent?: string }
 ) => {
   const thisUser = await User.findById(user);
 
@@ -136,6 +175,13 @@ const addOrderToDB = async (
     ],
     user: thisUser._id,
     orderNumber: await generateOrderNumber(Order.find()),
+    trackingData: buildTrackingSnapshot({
+      tracking: data.tracking,
+      clientIp: requestMeta?.clientIp,
+      userAgent: requestMeta?.userAgent,
+      user: thisUser,
+      shippingAddress: data.shippingAddress,
+    }),
   };
 
   const activeDeals = await Deal.find({ isActive: true });
@@ -502,6 +548,10 @@ const adminUpdateOrderToDB = async (
   id: string,
   updateData: Partial<IOrder> & { adminNotes?: string }
 ) => {
+  // trackingData is the write-once Meta snapshot taken at order creation; never let an update overwrite it
+  const { trackingData: _ignoredTrackingData, ...safeUpdateData } =
+    updateData;
+
   const order = await Order.findById(id);
   if (!order) throw new Error("Order not found");
 
@@ -534,14 +584,15 @@ const adminUpdateOrderToDB = async (
     id,
     {
       $set: {
-        ...updateData,
-        shippingAddress: updateData.shippingAddress,
-        billingAddress: updateData.billingAddress || updateData.shippingAddress,
-        currentStatus: updateData.currentStatus || order.currentStatus,
-        paymentStatus: updateData.paymentStatus || order.paymentStatus,
-        paymentMethod: updateData.paymentMethod || order.paymentMethod,
-        shippingMethod: updateData.shippingMethod || order.shippingMethod,
-        trackingNumber: updateData.trackingNumber,
+        ...safeUpdateData,
+        shippingAddress: safeUpdateData.shippingAddress,
+        billingAddress:
+          safeUpdateData.billingAddress || safeUpdateData.shippingAddress,
+        currentStatus: safeUpdateData.currentStatus || order.currentStatus,
+        paymentStatus: safeUpdateData.paymentStatus || order.paymentStatus,
+        paymentMethod: safeUpdateData.paymentMethod || order.paymentMethod,
+        shippingMethod: safeUpdateData.shippingMethod || order.shippingMethod,
+        trackingNumber: safeUpdateData.trackingNumber,
       },
       ...(updateData.currentStatus && { statusHistory: order.statusHistory }),
     },
@@ -576,6 +627,13 @@ const adminUpdateOrderToDB = async (
       console.log(err);
     }
   }
+  if (statusChanged && updateData.currentStatus) {
+    void MetaPixelService.onOrderStatusChanged(
+      order._id,
+      String(updateData.currentStatus)
+    );
+  }
+
   return updatedOrder;
 };
 

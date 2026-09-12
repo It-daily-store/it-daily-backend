@@ -9,6 +9,9 @@ import redisClient from "./redis";
 
 const app: Application = express();
 
+// Railway sits in front as a load balancer; without this req.ip is always the LB's address
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: [

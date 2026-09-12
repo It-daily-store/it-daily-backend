@@ -1,0 +1,118 @@
+import { z } from "zod";
+import {
+  META_STANDARD_EVENTS,
+  ORDER_STATUSES,
+  TRIGGER_KEYS,
+} from "./metaPixel.constants";
+
+// A custom event name must be a valid Meta event name: letters, digits,
+// underscores and spaces only, so a typo cannot produce an unsendable event.
+const eventNameSchema = z
+  .string()
+  .trim()
+  .max(50)
+  .regex(
+    /^[A-Za-z0-9_ ]*$/,
+    "Event name may only contain letters, digits, underscores and spaces",
+  );
+
+const triggerSchema = z
+  .object({
+    key: z.enum(TRIGGER_KEYS as [string, ...string[]]),
+    eventName: eventNameSchema,
+    isCustomEvent: z.boolean(),
+    enabled: z.boolean(),
+    sendViaBrowser: z.boolean(),
+    sendViaCapi: z.boolean(),
+  })
+  .refine((t) => !t.enabled || t.eventName.length > 0, {
+    message: "An enabled trigger must have an event name",
+    path: ["eventName"],
+  })
+  .refine(
+    (t) =>
+      t.isCustomEvent ||
+      !t.eventName ||
+      META_STANDARD_EVENTS.includes(t.eventName as never),
+    {
+      message:
+        "Unknown standard event. Mark it as a custom event to use this name.",
+      path: ["eventName"],
+    },
+  );
+
+const statusRuleSchema = z.object({
+  _id: z.string().optional(),
+  status: z.enum(ORDER_STATUSES as unknown as [string, ...string[]]),
+  eventName: eventNameSchema.min(1, "Event name is required"),
+  isCustomEvent: z.boolean(),
+  enabled: z.boolean(),
+});
+
+const ipPatternSchema = z
+  .string()
+  .trim()
+  .regex(
+    /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/,
+    "Use an IPv4 address or CIDR range, for example 203.0.113.7 or 203.0.113.0/24",
+  );
+
+const UpdateConfigSchema = z.object({
+  pixelId: z.string().trim().max(50).optional(),
+  datasetId: z.string().trim().max(50).optional(),
+  // Absent means "keep the stored token"; an empty string means "clear it".
+  accessToken: z.string().trim().optional(),
+  testEventCode: z.string().trim().max(50).optional(),
+  enabled: z.boolean().optional(),
+  capiEnabled: z.boolean().optional(),
+  currency: z.string().trim().length(3).optional(),
+  contentIdSource: z.enum(["sku", "_id", "slug"]).optional(),
+  excludedIps: z.array(ipPatternSchema).max(50).optional(),
+  blockBots: z.boolean().optional(),
+  triggers: z.array(triggerSchema).optional(),
+  statusRules: z.array(statusRuleSchema).optional(),
+});
+
+const PreviewPayloadSchema = z
+  .object({
+    triggerKey: z.enum(TRIGGER_KEYS as [string, ...string[]]).optional(),
+    statusRuleId: z.string().trim().optional(),
+    sampleOrderId: z.string().trim().optional(),
+  })
+  .refine((v) => !!v.triggerKey !== !!v.statusRuleId, {
+    message: "Provide exactly one of triggerKey or statusRuleId",
+  });
+
+const IngestEventSchema = z.object({
+  triggerKey: z.enum(TRIGGER_KEYS as [string, ...string[]]),
+  eventId: z.string().trim().min(1).max(100),
+  orderId: z.string().trim().optional(),
+  eventSourceUrl: z.string().trim().max(500).optional(),
+  custom: z
+    .object({
+      content_ids: z.array(z.string().trim().max(100)).max(100).optional(),
+      content_type: z.string().trim().max(50).optional(),
+      content_name: z.string().trim().max(200).optional(),
+      content_category: z.string().trim().max(200).optional(),
+      search_string: z.string().trim().max(200).optional(),
+      value: z.number().finite().nonnegative().optional(),
+      num_items: z.number().int().nonnegative().max(10000).optional(),
+      contents: z
+        .array(
+          z.object({
+            id: z.string().trim().max(100),
+            quantity: z.number().int().nonnegative().max(10000),
+            item_price: z.number().finite().nonnegative(),
+          }),
+        )
+        .max(100)
+        .optional(),
+    })
+    .optional(),
+});
+
+export const MetaPixelValidation = {
+  UpdateConfigSchema,
+  PreviewPayloadSchema,
+  IngestEventSchema,
+};
