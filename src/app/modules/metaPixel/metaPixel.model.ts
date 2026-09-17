@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 import { IMetaPixelConfig } from "./metaPixel.interface";
-import { ORDER_STATUSES } from "./metaPixel.constants";
+import { ORDER_STATUSES, USER_DATA_PARAM_KEYS } from "./metaPixel.constants";
 
 const triggerSchema = new Schema(
   {
@@ -24,7 +24,6 @@ const statusRuleSchema = new Schema({
 const metaPixelConfigSchema = new Schema<IMetaPixelConfig>(
   {
     pixelId: { type: String, trim: true },
-    datasetId: { type: String, trim: true },
     accessToken: { type: String },
     testEventCode: { type: String, trim: true },
     tokenVerifiedAt: { type: Date },
@@ -38,6 +37,16 @@ const metaPixelConfigSchema = new Schema<IMetaPixelConfig>(
       default: "sku",
     },
     contentType: { type: String, default: "product" },
+    // No default: an absent entry means "send it", so existing configs keep
+    // their current behaviour without a migration.
+    userDataParams: {
+      type: new Schema(
+        Object.fromEntries(
+          USER_DATA_PARAM_KEYS.map((key) => [key, { type: Boolean }]),
+        ),
+        { _id: false },
+      ),
+    },
     excludedIps: { type: [String], default: [] },
     blockBots: { type: Boolean, default: true },
     triggers: { type: [triggerSchema], default: [] },

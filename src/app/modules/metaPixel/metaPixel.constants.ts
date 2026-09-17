@@ -1,4 +1,5 @@
-export const GRAPH_API_VERSION = "v21.0";
+// Graph API versions expire ~2 years after release; v25.0 runs to 2028-07-29.
+export const GRAPH_API_VERSION = "v25.0";
 
 export const META_STANDARD_EVENTS = [
   "AddPaymentInfo",
@@ -163,3 +164,26 @@ export const ORDER_STATUSES = [
   "cancelled",
   "returned",
 ] as const;
+
+// Mirrors the customer information parameter toggles in Events Manager → dataset
+// → Settings. fbp, fbc, IP and user agent are absent there because Meta always
+// takes them for web events, so they are never filtered.
+export const USER_DATA_PARAMS = [
+  { key: "em", label: "Email" },
+  { key: "ph", label: "Phone number" },
+  { key: "fn", label: "First name" },
+  { key: "ln", label: "Last name" },
+  { key: "ge", label: "Gender" },
+  { key: "db", label: "Date of birth" },
+  { key: "ct", label: "City" },
+  { key: "st", label: "State" },
+  { key: "zp", label: "Zip code" },
+  { key: "country", label: "Country" },
+  { key: "external_id", label: "External ID" },
+] as const;
+
+export type TUserDataParam = (typeof USER_DATA_PARAMS)[number]["key"];
+
+export const USER_DATA_PARAM_KEYS = USER_DATA_PARAMS.map(
+  (p) => p.key,
+) as string[];

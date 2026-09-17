@@ -1,3 +1,4 @@
+import { TUserDataParam } from "./metaPixel.constants";
 import { Types } from "mongoose";
 
 export type TContentIdSource = "sku" | "_id" | "slug";
@@ -26,7 +27,6 @@ export interface IMetaPixelStatusRule {
 
 export interface IMetaPixelConfig {
   pixelId?: string;
-  datasetId?: string;
   accessToken?: string;
   testEventCode?: string;
   tokenVerifiedAt?: Date;
@@ -35,6 +35,7 @@ export interface IMetaPixelConfig {
   capiEnabled: boolean;
   currency: string;
   contentIdSource: TContentIdSource;
+  userDataParams?: Partial<Record<TUserDataParam, boolean>>;
   contentType: string;
   excludedIps: string[];
   blockBots: boolean;

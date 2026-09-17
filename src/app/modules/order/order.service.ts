@@ -386,6 +386,10 @@ const addOrderToDB = async (
       sessionId: session.url,
     };
   }
+
+  // Non-card orders fell off the end returning undefined, so the storefront had
+  // no order id to build the shared Purchase eventId from and could not dedupe.
+  return { order };
 };
 
 const getMyOrdersFromDB = async (

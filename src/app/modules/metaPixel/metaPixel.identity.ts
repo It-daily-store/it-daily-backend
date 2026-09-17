@@ -5,6 +5,8 @@ export type TIdentityKind =
   | "ph"
   | "fn"
   | "ln"
+  | "ge"
+  | "db"
   | "ct"
   | "st"
   | "zp"
@@ -36,7 +38,18 @@ const normalize = (value: string, kind: TIdentityKind): string => {
   switch (kind) {
     case "ph":
       return normalizePhone(trimmed);
+    // Meta strips digits, dots, spaces, hyphens and parens from locality names,
+    // so "Dhaka North" must hash as "dhakanorth" or it never matches.
+    case "ct":
+    case "st":
+      return trimmed.toLowerCase().replace(/[0-9.\s\-()]/g, "");
     case "zp":
+      return trimmed.toLowerCase().replace(/\s/g, "").split("-")[0];
+    case "country":
+      return trimmed.toLowerCase().replace(/[^a-z]/g, "");
+    case "ge":
+      return trimmed.toLowerCase().charAt(0);
+    case "db":
       return trimmed.replace(/\D/g, "");
     case "external_id":
       return trimmed;

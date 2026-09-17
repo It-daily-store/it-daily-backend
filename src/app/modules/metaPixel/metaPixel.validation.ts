@@ -3,6 +3,7 @@ import {
   META_STANDARD_EVENTS,
   ORDER_STATUSES,
   TRIGGER_KEYS,
+  USER_DATA_PARAM_KEYS,
 } from "./metaPixel.constants";
 
 // A custom event name must be a valid Meta event name: letters, digits,
@@ -59,7 +60,6 @@ const ipPatternSchema = z
 
 const UpdateConfigSchema = z.object({
   pixelId: z.string().trim().max(50).optional(),
-  datasetId: z.string().trim().max(50).optional(),
   // Absent means "keep the stored token"; an empty string means "clear it".
   accessToken: z.string().trim().optional(),
   testEventCode: z.string().trim().max(50).optional(),
@@ -67,6 +67,14 @@ const UpdateConfigSchema = z.object({
   capiEnabled: z.boolean().optional(),
   currency: z.string().trim().length(3).optional(),
   contentIdSource: z.enum(["sku", "_id", "slug"]).optional(),
+  userDataParams: z
+    .object(
+      Object.fromEntries(
+        USER_DATA_PARAM_KEYS.map((key) => [key, z.boolean().optional()]),
+      ) as Record<string, z.ZodOptional<z.ZodBoolean>>,
+    )
+    .strict()
+    .optional(),
   excludedIps: z.array(ipPatternSchema).max(50).optional(),
   blockBots: z.boolean().optional(),
   triggers: z.array(triggerSchema).optional(),
@@ -90,7 +98,9 @@ const IngestEventSchema = z.object({
   eventSourceUrl: z.string().trim().max(500).optional(),
   custom: z
     .object({
-      content_ids: z.array(z.string().trim().max(100)).max(100).optional(),
+      // Product SKUs here are derived from product names and already reach 104
+      // characters, so a 100-cap silently rejected real catalogue items.
+      content_ids: z.array(z.string().trim().max(256)).max(100).optional(),
       content_type: z.string().trim().max(50).optional(),
       content_name: z.string().trim().max(200).optional(),
       content_category: z.string().trim().max(200).optional(),
@@ -100,7 +110,7 @@ const IngestEventSchema = z.object({
       contents: z
         .array(
           z.object({
-            id: z.string().trim().max(100),
+            id: z.string().trim().max(256),
             quantity: z.number().int().nonnegative().max(10000),
             item_price: z.number().finite().nonnegative(),
           }),

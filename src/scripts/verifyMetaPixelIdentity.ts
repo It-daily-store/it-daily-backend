@@ -10,6 +10,7 @@ import {
   isBotUserAgent,
   isIpExcluded,
 } from "../app/modules/metaPixel/metaPixel.identity";
+import { filterUserData } from "../app/modules/metaPixel/metaPixel.payload";
 
 const run = () => {
   // crypto round trip
@@ -48,6 +49,34 @@ const run = () => {
   assert.strictEqual(
     hashIdentity("BD", "country"),
     hashIdentity("bd", "country"),
+  );
+
+  // city and state: Meta strips spaces, digits and punctuation, so a multi-word
+  // city must hash identically to its squashed form or it never matches.
+  assert.strictEqual(
+    hashIdentity("Dhaka North", "ct"),
+    hashIdentity("dhakanorth", "ct"),
+  );
+  assert.strictEqual(
+    hashIdentity("Cox's Bazar-2", "ct"),
+    hashIdentity("cox'sbazar", "ct"),
+  );
+  assert.strictEqual(
+    hashIdentity("Chittagong (South)", "st"),
+    hashIdentity("chittagongsouth", "st"),
+  );
+
+  // country: non-letters are dropped, not just lowercased
+  assert.strictEqual(
+    hashIdentity(" B.D. ", "country"),
+    hashIdentity("bd", "country"),
+  );
+
+  // gender reduces to its initial; date of birth to YYYYMMDD digits
+  assert.strictEqual(hashIdentity("Female", "ge"), hashIdentity("f", "ge"));
+  assert.strictEqual(
+    hashIdentity("1990-07-15", "db"),
+    hashIdentity("19900715", "db"),
   );
 
   // external_id is an opaque id: not lowercased, only trimmed
@@ -92,6 +121,43 @@ const run = () => {
     false,
   );
   assert.strictEqual(isBotUserAgent(undefined), false);
+
+  // customer information parameter filtering
+  const userData = {
+    em: ["hash"],
+    ph: ["hash"],
+    ct: ["hash"],
+    fbp: "fb.1.123.456",
+    client_ip_address: "203.0.113.7",
+  };
+
+  // absent selection means "send everything": existing configs must not change
+  assert.deepStrictEqual(
+    filterUserData(userData, {} as never),
+    userData,
+    "an unconfigured selection must pass user data through untouched",
+  );
+
+  const filtered = filterUserData(userData, {
+    userDataParams: { ph: false, ct: false },
+  } as never);
+
+  assert.deepStrictEqual(Object.keys(filtered).sort(), [
+    "client_ip_address",
+    "em",
+    "fbp",
+  ]);
+
+  // fbp and the IP are not on Meta's toggle list, so they survive even when
+  // every switchable parameter is turned off
+  const allOff = filterUserData(userData, {
+    userDataParams: { em: false, ph: false, ct: false },
+  } as never);
+
+  assert.deepStrictEqual(Object.keys(allOff).sort(), [
+    "client_ip_address",
+    "fbp",
+  ]);
 
   console.log("all meta pixel identity assertions passed");
 };
