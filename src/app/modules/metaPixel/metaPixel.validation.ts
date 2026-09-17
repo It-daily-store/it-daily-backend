@@ -3,6 +3,7 @@ import {
   META_STANDARD_EVENTS,
   ORDER_STATUSES,
   TRIGGER_KEYS,
+  USER_DATA_PARAM_KEYS,
 } from "./metaPixel.constants";
 
 // A custom event name must be a valid Meta event name: letters, digits,
@@ -66,6 +67,14 @@ const UpdateConfigSchema = z.object({
   capiEnabled: z.boolean().optional(),
   currency: z.string().trim().length(3).optional(),
   contentIdSource: z.enum(["sku", "_id", "slug"]).optional(),
+  userDataParams: z
+    .object(
+      Object.fromEntries(
+        USER_DATA_PARAM_KEYS.map((key) => [key, z.boolean().optional()]),
+      ) as Record<string, z.ZodOptional<z.ZodBoolean>>,
+    )
+    .strict()
+    .optional(),
   excludedIps: z.array(ipPatternSchema).max(50).optional(),
   blockBots: z.boolean().optional(),
   triggers: z.array(triggerSchema).optional(),

@@ -146,6 +146,7 @@ const updateConfig = async (
     "capiEnabled",
     "currency",
     "contentIdSource",
+    "userDataParams",
     "excludedIps",
     "blockBots",
     "statusRules",

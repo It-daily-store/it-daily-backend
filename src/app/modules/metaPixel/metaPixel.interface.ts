@@ -1,3 +1,4 @@
+import { TUserDataParam } from "./metaPixel.constants";
 import { Types } from "mongoose";
 
 export type TContentIdSource = "sku" | "_id" | "slug";
@@ -34,6 +35,7 @@ export interface IMetaPixelConfig {
   capiEnabled: boolean;
   currency: string;
   contentIdSource: TContentIdSource;
+  userDataParams?: Partial<Record<TUserDataParam, boolean>>;
   contentType: string;
   excludedIps: string[];
   blockBots: boolean;

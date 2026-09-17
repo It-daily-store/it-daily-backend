@@ -1,3 +1,7 @@
+import {
+  USER_DATA_PARAM_KEYS,
+  TUserDataParam,
+} from "./metaPixel.constants";
 import { IOrder } from "../order/order.interface";
 import { IMetaPixelConfig, TContentIdSource } from "./metaPixel.interface";
 
@@ -84,6 +88,27 @@ const buildUserDataFromOrder = (order: IOrder): TCapiUserData => {
   return userData;
 };
 
+// The single point where customer information parameters are dropped, so order
+// events and storefront-triggered events can never disagree about what is sent.
+export const filterUserData = (
+  userData: TCapiUserData,
+  config: IMetaPixelConfig,
+): TCapiUserData => {
+  const selection = config.userDataParams;
+
+  if (!selection) {
+    return userData;
+  }
+
+  return Object.fromEntries(
+    Object.entries(userData).filter(
+      ([key]) =>
+        !USER_DATA_PARAM_KEYS.includes(key) ||
+        selection[key as TUserDataParam] !== false,
+    ),
+  );
+};
+
 export const hasUsableIdentity = (userData: TCapiUserData): boolean =>
   Object.values(userData).some((value) =>
     Array.isArray(value)
@@ -110,7 +135,7 @@ export const buildOrderEventPayload = (args: {
     event_source_url: (
       order as never as { trackingData?: { eventSourceUrl?: string } }
     ).trackingData?.eventSourceUrl,
-    user_data: buildUserDataFromOrder(order),
+    user_data: filterUserData(buildUserDataFromOrder(order), config),
     custom_data: {
       currency: config.currency,
       value: calculateOrderValue(order),
@@ -161,7 +186,7 @@ export const buildTriggerEventPayload = (args: {
         event_id: eventId,
         action_source: "website",
         event_source_url: eventSourceUrl,
-        user_data: userData,
+        user_data: filterUserData(userData, config),
         custom_data: { ...custom, currency: config.currency },
       },
     ],
