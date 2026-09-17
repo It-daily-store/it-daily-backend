@@ -1,4 +1,5 @@
-export const GRAPH_API_VERSION = "v21.0";
+// Graph API versions expire ~2 years after release; v25.0 runs to 2028-07-29.
+export const GRAPH_API_VERSION = "v25.0";
 
 export const META_STANDARD_EVENTS = [
   "AddPaymentInfo",

@@ -26,7 +26,6 @@ export interface IMetaPixelStatusRule {
 
 export interface IMetaPixelConfig {
   pixelId?: string;
-  datasetId?: string;
   accessToken?: string;
   testEventCode?: string;
   tokenVerifiedAt?: Date;

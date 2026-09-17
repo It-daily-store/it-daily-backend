@@ -24,7 +24,6 @@ const statusRuleSchema = new Schema({
 const metaPixelConfigSchema = new Schema<IMetaPixelConfig>(
   {
     pixelId: { type: String, trim: true },
-    datasetId: { type: String, trim: true },
     accessToken: { type: String },
     testEventCode: { type: String, trim: true },
     tokenVerifiedAt: { type: Date },

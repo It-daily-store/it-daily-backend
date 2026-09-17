@@ -59,7 +59,6 @@ const ipPatternSchema = z
 
 const UpdateConfigSchema = z.object({
   pixelId: z.string().trim().max(50).optional(),
-  datasetId: z.string().trim().max(50).optional(),
   // Absent means "keep the stored token"; an empty string means "clear it".
   accessToken: z.string().trim().optional(),
   testEventCode: z.string().trim().max(50).optional(),

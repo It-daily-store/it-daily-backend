@@ -141,7 +141,6 @@ const updateConfig = async (
 
   const assignable: (keyof IMetaPixelConfig)[] = [
     "pixelId",
-    "datasetId",
     "testEventCode",
     "enabled",
     "capiEnabled",
