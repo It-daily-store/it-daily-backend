@@ -1,17 +1,11 @@
 import mongoose, { Types } from "mongoose";
 import { IDeal } from "./deals.interface";
 import Deal from "./deals.model";
-import { getCache } from "../../../redis";
-import { RedisKeys } from "../../interface/common";
 import { TProduct } from "../product/product.interface";
 import { Product } from "../product/product.model";
 import { ObjectId } from "mongodb";
-import { setProductsToRedis } from "../product/product.redis";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
-import { refreshDealsCache } from "./deal.queue";
-import sift from "sift";
-import { refreshProductsCache } from "../product/product.queue";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
@@ -36,7 +30,6 @@ const createDealToDb = async (data: Partial<IDeal>, user: Types.ObjectId) => {
 
   const result = await Deal.create(payload);
 
-  refreshDealsCache();
 
   return result;
 };
@@ -75,35 +68,18 @@ const addProductsToDealToDB = async (
   const products: IDeal["products"] = [];
   let notFoundProducts = 0;
 
-  const redisData = await getCache(RedisKeys.products);
-
-  if (redisData !== null) {
-    const redisProducts = JSON.parse(redisData);
-    for (const reqProduct of newProductsOnly) {
-      const exist = redisProducts.find(
-        (p: TProduct) => p._id.toString() === reqProduct.productId.toString()
-      );
-      if (exist) {
-        products.push(reqProduct);
-      } else {
-        notFoundProducts++;
-      }
+  const databaseProducts = await Product.find({
+    _id: { $in: newProductsOnly.map((p) => new ObjectId(p.productId)) },
+  }).lean();
+  for (const reqProduct of newProductsOnly) {
+    const exist = databaseProducts.find(
+      (p: TProduct) => p._id.toString() === reqProduct.productId.toString()
+    );
+    if (exist) {
+      products.push(reqProduct);
+    } else {
+      notFoundProducts++;
     }
-  } else {
-    const databaseProducts = await Product.find({
-      _id: { $in: newProductsOnly.map((p) => new ObjectId(p.productId)) },
-    }).lean();
-    for (const reqProduct of newProductsOnly) {
-      const exist = databaseProducts.find(
-        (p: TProduct) => p._id.toString() === reqProduct.productId.toString()
-      );
-      if (exist) {
-        products.push(reqProduct);
-      } else {
-        notFoundProducts++;
-      }
-    }
-    await setProductsToRedis();
   }
 
   if (products.length === 0) {
@@ -119,8 +95,6 @@ const addProductsToDealToDB = async (
     { new: true }
   );
 
-  refreshDealsCache();
-  refreshProductsCache();
 
   return {
     products: result?.products,
@@ -144,46 +118,34 @@ const getAllDealsFromDB = async (query: {
     seachQuery["title"] = { $regex: query.search, $options: "i" };
   }
 
-  const catchData = await getCache(RedisKeys.deals);
-  let total = 0;
-  let result: IDeal[] = [];
-  if (catchData !== null) {
-    const data = JSON.parse(catchData) || [];
-    const filteredData = data.filter(sift(seachQuery)) || [];
-    total = filteredData.length;
-    result = filteredData?.slice(skip, skip + limit);
-  } else {
-    result = await Deal.find(seachQuery)
-      .populate([
-        {
-          path: "products.productId",
-          select: "slug name thumbnail price mainCategory",
+  const result = await Deal.find(seachQuery)
+    .populate([
+      {
+        path: "products.productId",
+        select: "slug name thumbnail price mainCategory",
+      },
+      {
+        path: "createdBy",
+        select: "fullName profilePicture email role",
+        populate: {
+          path: "role",
+          select: "role",
         },
-        {
-          path: "createdBy",
-          select: "fullName profilePicture email role",
-          populate: {
-            path: "role",
-            select: "role",
-          },
+      },
+      {
+        path: "lastUpdatedBy",
+        select: "fullName profilePicture email role",
+        populate: {
+          path: "role",
+          select: "role",
         },
-        {
-          path: "lastUpdatedBy",
-          select: "fullName profilePicture email role",
-          populate: {
-            path: "role",
-            select: "role",
-          },
-        },
-      ])
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      },
+    ])
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-    total = Number(Deal.countDocuments(seachQuery));
-
-    refreshDealsCache();
-  }
+  const total = await Deal.countDocuments(seachQuery);
 
   return {
     deals: result,
@@ -293,17 +255,7 @@ const updateDealToDB = async (
 
   const { title, description, startTime, endTime, image } = data;
 
-  let deal: IDeal | null;
-
-  const redisDeals = await getCache(RedisKeys.deals);
-
-  if (redisDeals !== null) {
-    const deals = JSON.parse(redisDeals);
-    deal = deals.find((d: IDeal) => d._id.toString() === id);
-  } else {
-    deal = await Deal.findById(id);
-    refreshDealsCache();
-  }
+  const deal = await Deal.findById(id);
 
   if (!deal) {
     throw new AppError(httpStatus.NOT_FOUND, "Could not find deal");
@@ -372,7 +324,6 @@ const updateDealToDB = async (
     { new: true }
   );
 
-  refreshDealsCache();
 
   return result;
 };

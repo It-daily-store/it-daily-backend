@@ -5,8 +5,6 @@ import { Server } from "http";
 import { initializeSocketIO } from "./socket";
 import Notification from "./app/modules/notification/notification.model";
 import { ValidateIOAuth } from "./app/middleware/socketAuth";
-import { refreshProductsCache } from "./app/modules/product/product.queue";
-import { refreshDealsCache } from "./app/modules/deals/deal.queue";
 import "./app/modules/metaPixel/metaPixel.queue";
 
 let server: Server;
@@ -14,9 +12,6 @@ let server: Server;
 const main = async () => {
   try {
     await mongoose.connect(config.database_url as string);
-
-    refreshProductsCache();
-    refreshDealsCache();
 
     server = app.listen(config.port, () => {
       console.log(`IT shop server running on port ${config.port}`);

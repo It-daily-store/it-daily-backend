@@ -3,3 +3,5 @@ node_modules/
 .env.local
 .env.staging
 dist/
+# fix:product-slugs old -> new mapping output
+slug-changes-*.json

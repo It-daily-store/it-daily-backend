@@ -19,6 +19,10 @@
     "redis:rm": "docker rm redis-6380",
     "clean:status-notes": "ts-node src/scripts/clearGeneratedStatusNotes.ts",
     "verify:meta-pixel": "ts-node src/scripts/verifyMetaPixelIdentity.ts",
+    "verify:product-cache": "ts-node --transpile-only src/scripts/verifyProductCache.ts && ts-node --transpile-only src/scripts/verifyProductCache.ts --down",
+    "verify:product-cache:db": "ts-node --transpile-only src/scripts/verifyProductCacheDb.ts",
+    "verify:slugs": "ts-node --transpile-only src/scripts/verifySlugs.ts",
+    "fix:product-slugs": "ts-node --transpile-only src/scripts/fixProductSlugs.ts",
     "grant:marketing": "ts-node src/scripts/grantMarketingPermissions.ts",
     "migrate:drop-dataset-id": "ts-node src/scripts/dropDatasetIdField.ts"
   },

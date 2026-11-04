@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugSchema } from "../../utils/slug";
 
 const createCategoryValidationSchema = z.object({
   name: z
@@ -18,7 +19,7 @@ const createCategoryValidationSchema = z.object({
     invalid_type_error:
       "Product details category should be an array of strings",
   }),
-  slug: z.string({ invalid_type_error: "Slug has to be a string" }).optional(),
+  slug: slugSchema.optional(),
   description: z
     .string({ invalid_type_error: "Description has to be a string" })
     .optional(),
@@ -37,6 +38,7 @@ const updateCategoryValidationSchema = z.object({
     invalid_type_error:
       "Product details category should be an array of strings",
   }),
+  slug: slugSchema.optional(),
   description: z
     .string({ invalid_type_error: "Description has to be a string" })
     .optional(),

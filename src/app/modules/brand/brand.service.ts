@@ -9,6 +9,7 @@ import {
   addNotifications,
   buildNotifications,
 } from "../notification/notificaiton.utils";
+import { invalidateProductCache } from "../../utils/productCache";
 
 const createBrandIntoDB = async (
   payload: TBrand,
@@ -23,6 +24,8 @@ const createBrandIntoDB = async (
   }
 
   const result = await Brand.create({ ...payload, createdBy: user?._id });
+
+  invalidateProductCache();
 
   if (result) {
     const notifications = await buildNotifications({
@@ -53,6 +56,8 @@ const updateBrandIntoDB = async (
   delete payload.isDeleted;
 
   const result = await Brand.findByIdAndUpdate(id, payload, { new: true });
+
+  invalidateProductCache();
 
   if (result) {
     const notifications = await buildNotifications({
@@ -99,6 +104,8 @@ const deleteBrandFromDB = async (id: string, admin: TUser) => {
     { new: true }
   );
 
+  invalidateProductCache();
+
   if (result) {
     const notifications = await buildNotifications({
       source: result._id,
@@ -139,10 +146,21 @@ const getStorefrontBrandsFromDB = async () => {
     .sort((a, b) => b.productCount - a.productCount);
 };
 
+const getStaticBrandIdsFromDB = async () => {
+  const result = await Brand.find({ isDeleted: false, isActive: true })
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .select("_id")
+    .lean();
+
+  return result;
+};
+
 export const BrandService = {
   createBrandIntoDB,
   updateBrandIntoDB,
   getAllBrandsFromDB,
   getStorefrontBrandsFromDB,
+  getStaticBrandIdsFromDB,
   deleteBrandFromDB,
 };

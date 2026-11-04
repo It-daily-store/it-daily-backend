@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import { TProductFilter } from "./filter.interface";
 import ProductFilter from "./filter.model";
 import AppError from "../../errors/AppError";
+import { invalidateProductCache } from "../../utils/productCache";
 
 const createFilterIntoDB = async (
   payload: Partial<TProductFilter & { options: string[] }>
@@ -17,6 +18,7 @@ const createFilterIntoDB = async (
   };
 
   const result = await ProductFilter.create(formattedPayload);
+  invalidateProductCache();
   return result;
 };
 
@@ -33,6 +35,7 @@ const deleteFilterFromDB = async (id: string) => {
   }
 
   const result = await ProductFilter.findByIdAndDelete(id);
+  invalidateProductCache();
 
   return result;
 };
@@ -110,6 +113,7 @@ const updateFilterIntoDB = async (
     { $set: updatePayload },
     { new: true, runValidators: true }
   );
+  invalidateProductCache();
 
   return result;
 };

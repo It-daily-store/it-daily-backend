@@ -24,6 +24,7 @@ import { IAddress } from "../address/address.interface";
 import { IOrderTrackingData } from "../metaPixel/metaPixel.interface";
 import { hashIdentity, buildFbc } from "../metaPixel/metaPixel.identity";
 import { MetaPixelService } from "../metaPixel/metaPixel.service";
+import { invalidateProductCache } from "../../utils/productCache";
 
 let stripe: Stripe | null = null;
 
@@ -291,6 +292,8 @@ const addOrderToDB = async (
       $inc: { quantity: -pdt.quantity },
     });
   }
+
+  invalidateProductCache();
 
   if (order) {
     try {

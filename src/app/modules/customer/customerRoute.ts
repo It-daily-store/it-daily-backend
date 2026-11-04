@@ -17,6 +17,7 @@ router.get("/product/new-arrivals", ProductControllers.getNewArrivals);
 router.get("/product/best-sellers", ProductControllers.getBestSellers);
 router.get("/product/by-brand/:brandId", ProductControllers.getProductsByBrand);
 router.get("/brand/get-all", BrandController.getStorefrontBrands);
+router.get("/brand/static-ids", BrandController.getStaticBrandIds);
 router.get(
   "/product/by-category/:slug",
   ProductControllers.getProductsByCategory,
