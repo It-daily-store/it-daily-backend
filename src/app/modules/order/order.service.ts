@@ -19,6 +19,7 @@ import { AddressService } from "../address/address.service";
 import Deal from "../deals/deals.model";
 import FlashSale from "../flashSales/flashSale.model";
 import { EmailJobName, emailQueue } from "../../queues/email.queue";
+import { enqueueInBackground } from "../../queues/queue.config";
 import { IAddress } from "../address/address.interface";
 import { IOrderTrackingData } from "../metaPixel/metaPixel.interface";
 import { hashIdentity, buildFbc } from "../metaPixel/metaPixel.identity";
@@ -91,7 +92,7 @@ export const paymentWebhook = async (req: Request, res: Response) => {
               if (!thisUser) {
                 return;
               }
-              await emailQueue.add(EmailJobName.sendPaymentConfirmationEmail, {
+              enqueueInBackground(emailQueue, EmailJobName.sendPaymentConfirmationEmail, {
                 order: res,
                 user: thisUser,
               });
@@ -315,7 +316,7 @@ const addOrderToDB = async (
         notifications: [...notifications, notification],
         userFrom: customer,
       });
-      await emailQueue.add(EmailJobName.sendOrderConfirmationEmail, {
+      enqueueInBackground(emailQueue, EmailJobName.sendOrderConfirmationEmail, {
         user: thisUser,
         order,
       });

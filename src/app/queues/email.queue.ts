@@ -4,6 +4,7 @@ import { sendEmail } from "../utils/sendEmail";
 import { generateOrderEmailHTML } from "../templates/generateOrderEmailHTML";
 import { generateVerifyEmailHtml } from "../templates/generateVerifyEmailHtml";
 import { generateResetPassHtml } from "../templates/generateResetPassHtml";
+import { logWorkerErrors, queueOptions, workerOptions } from "./queue.config";
 
 export enum EmailJobName {
   sendVerificationEmail = "sendVerificationEmail",
@@ -12,13 +13,7 @@ export enum EmailJobName {
   sendPaymentConfirmationEmail = "sendPaymentConfirmationEmail",
 }
 
-const redisConnection = {
-  connection: {
-    url: process.env.REDIS_URL,
-  },
-};
-
-export const emailQueue = new Queue(RedisKeys.email, redisConnection);
+export const emailQueue = new Queue(RedisKeys.email, queueOptions);
 
 const emailWorker = new Worker(
   RedisKeys.email,
@@ -77,8 +72,10 @@ const emailWorker = new Worker(
       }
     }
   },
-  redisConnection
+  workerOptions
 );
+
+logWorkerErrors(emailWorker);
 
 emailWorker.on("completed", (job) => {
   console.log(`Deal Job ${job.id} completed!`);

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import redisClient from "../../../redis";
+import redisClient, { getCache } from "../../../redis";
 import { RedisKeys } from "../../interface/common";
 import { TProduct } from "./product.interface";
 import { Product } from "./product.model";
@@ -7,7 +7,7 @@ import { Product } from "./product.model";
 const EXPIRE_TIME = 86400;
 
 export const getProductsFromRedis = async (): Promise<TProduct[]> => {
-  const data = await redisClient?.get(RedisKeys.products);
+  const data = await getCache(RedisKeys.products);
   if (data) {
     return JSON.parse(data);
   } else {
