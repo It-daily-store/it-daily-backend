@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 process.env.REDIS_URL = "redis://127.0.0.1:6399";
 
 const run = async () => {
-  const { toSlug, isValidSlug } = await import("../app/utils/slug");
+  const { toSlug, isValidSlug, planSlugFixes } = await import("../app/utils/slug");
   const { CategoryValidations } = await import(
     "../app/modules/category/category.validation"
   );
@@ -14,7 +14,11 @@ const run = async () => {
 
   assert.equal(
     toSlug('Corsair XENEON 32" IPS (VQ1-00001) 15.6 + RGB'),
-    "corsair-xeneon-32-ips-vq1-00001-156-rgb",
+    "corsair-xeneon-32-inch-ips-vq1-00001-15-6-plus-rgb",
+  );
+  assert.equal(
+    toSlug('Gigabyte A16 16" FHD+ Copilot+ PC 12.4"'),
+    "gigabyte-a16-16-inch-fhd-plus-copilot-plus-pc-12-4-inch",
   );
   assert.ok(isValidSlug(toSlug('HP ProBook 15.6" FHD')));
   ok("generated slugs are clean");
@@ -51,6 +55,25 @@ const run = async () => {
     /Slug can only contain/,
   );
   ok("product update rejects bad slug");
+
+  const plan = planSlugFixes(
+    [
+      { _id: "1", slug: 'Monitor-32"-IPS', name: "Monitor 32 IPS" },
+      { _id: "2", slug: 'Monitor-32-inch-IPS"', name: "Monitor 32 IPS" },
+      { _id: "3", slug: "already-clean", name: "Clean" },
+      { _id: "4", slug: '""', name: 'Odd "name"' },
+      { _id: "5", slug: "taken-(x)", name: "Taken" },
+    ],
+    new Set(["taken-x"]),
+  );
+  assert.deepEqual(plan, [
+    { id: "1", from: 'Monitor-32"-IPS', to: "monitor-32-inch-ips" },
+    { id: "2", from: 'Monitor-32-inch-IPS"', to: "monitor-32-inch-ips-2" },
+    { id: "4", from: '""', to: "odd-name" },
+    { id: "5", from: "taken-(x)", to: "taken-x-2" },
+  ]);
+  plan.forEach((fix) => assert.ok(isValidSlug(fix.to)));
+  ok("slug fix plan: clean, unique, skips valid ones");
 };
 
 run()
