@@ -42,14 +42,15 @@ import {
 import ProductFilter from "../productFilters/filter.model";
 import { TBrand } from "../brand/brand.interface";
 import { TCategory } from "../category/category.interface";
-import { getProductsFromRedis } from "./product.redis";
-import sift from "sift";
 import {
-  refreshProductsCache,
-  refreshSingleProductCache,
-} from "./product.queue";
+  cached,
+  invalidateProductCache,
+  LIST_TTL,
+  PRODUCT_TTL,
+} from "../../utils/productCache";
 import { TProductDetailsCategory } from "../productDetailsCategory/productDetailsCategory.interface";
 import Settings from "../settings/settings.model";
+import { isValidSlug, SLUG_ERROR, toSlug } from "../../utils/slug";
 
 const createProductIntoDB = async (
   payload: TProduct,
@@ -62,7 +63,7 @@ const createProductIntoDB = async (
     throw new AppError(httpStatus.CONFLICT, "Could not find admin information");
   }
 
-  const slug = slugify(payload.name);
+  const slug = toSlug(payload.name);
 
   const productData = payload;
   productData.createdBy = user._id;
@@ -79,6 +80,8 @@ const createProductIntoDB = async (
   }
 
   const result = await Product.create(productData);
+
+  invalidateProductCache();
 
   if (result) {
     if (!thisUser || !thisUser._id) {
@@ -126,99 +129,54 @@ const getAllProductsFromDB = async (query: Record<string, unknown>) => {
   const limit = pagination.limit;
   const skip = (pagination.currentPage - 1) * limit;
 
-  let result;
-
-  const redisProducts = await getProductsFromRedis();
-
-  if (!redisProducts || redisProducts?.length === 0) {
-    if (query.category) {
-      query.mainCategory = new ObjectId(query.category as string);
-      delete query.categroy;
-    }
-
-    if (query.createdBy) {
-      query.createdBy = new ObjectId(query.createdBy as string);
-    }
-
-    if (query.createdAt) {
-      const startOfDay = dayjs(query.createdAt as string)
-        .utc()
-        .startOf("day")
-        .toDate();
-      const endOfDay = dayjs(query.createdAt as string)
-        .utc()
-        .endOf("day")
-        .toDate();
-
-      query.createdAt = {
-        $gte: startOfDay,
-        $lt: endOfDay,
-      };
-    }
-
-    const productQuery = new QueryBuilder(Product.find(), query)
-      .search(searchFields)
-      .filter(excludeFields)
-      .sort()
-      .fields();
-
-    await productQuery.paginate();
-
-    result = await productQuery.modelQuery
-      .select("price discount name quantity thumbnail slug")
-      .populate([
-        {
-          path: "brand",
-          match: { _id: { $type: "objectId" } },
-          select: "name image",
-        },
-        {
-          path: "mainCategory",
-          model: "Category",
-        },
-      ]);
-
-    pagination.total = productQuery.total;
-
-    refreshProductsCache();
-  } else {
-    const siftQuery: Record<string, any> = {};
-
-    if (query.searchTerm) {
-      siftQuery["$or"] = searchFields.map((field) => ({
-        [field]: { $regex: query?.searchTerm, $options: "i" },
-      }));
-    }
-
-    if (query.category) {
-      query.mainCategory = query.category;
-      delete query.categroy;
-    }
-
-    if (query.createdBy) {
-      query.createdBy = query.createdBy;
-    }
-
-    let filteredProducts = redisProducts.filter(sift(siftQuery));
-
-    if (query.createdAt) {
-      const startOfDay = dayjs(query.createdAt as string)
-        .startOf("day")
-        .toDate();
-      const endOfDay = dayjs(query.createdAt as string)
-        .endOf("day")
-        .toDate();
-
-      filteredProducts = filteredProducts.filter((item: any) => {
-        const createdAt = new Date(item.createdAt);
-        return createdAt >= startOfDay && createdAt < endOfDay;
-      });
-    }
-
-    pagination.total = filteredProducts.length || 0;
-
-    result = filteredProducts.slice(skip, skip + limit);
+  if (query.category) {
+    query.mainCategory = new ObjectId(query.category as string);
+    delete query.categroy;
   }
+
+  if (query.createdBy) {
+    query.createdBy = new ObjectId(query.createdBy as string);
+  }
+
+  if (query.createdAt) {
+    const startOfDay = dayjs(query.createdAt as string)
+      .utc()
+      .startOf("day")
+      .toDate();
+    const endOfDay = dayjs(query.createdAt as string)
+      .utc()
+      .endOf("day")
+      .toDate();
+
+    query.createdAt = {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    };
+  }
+
+  const productQuery = new QueryBuilder(Product.find(), query)
+    .search(searchFields)
+    .filter(excludeFields)
+    .sort()
+    .fields();
+
+  await productQuery.paginate();
+
+  const result = await productQuery.modelQuery
+    .select("price discount name quantity thumbnail slug")
+    .populate([
+      {
+        path: "brand",
+        match: { _id: { $type: "objectId" } },
+        select: "name image",
+      },
+      {
+        path: "mainCategory",
+        model: "Category",
+      },
+    ]);
+
+  pagination.total = productQuery.total;
 
   return {
     products: result,
@@ -485,7 +443,7 @@ const bulkUploadToDB = async (
 
                 // console.log({ key: field.value, value });
 
-                newData.slug = slugify(newData.name as string);
+                newData.slug = toSlug(newData.name as string);
                 newData.sku = slugify(newData.name as string);
                 newData.createdBy = user._id;
                 newData.special_price = claculateSpecialPrice(
@@ -602,7 +560,7 @@ const bulkUploadToDB = async (
     // throw new AppError(httpStatus.CONFLICT, 'Failed to store bulk upload history')
   }
 
-  refreshProductsCache();
+  invalidateProductCache();
 
   const result: TBulkUploadData = {
     withError,
@@ -683,7 +641,7 @@ const bulkUploadJsonToDB = async (
         videos: Array.isArray(data.videos) ? data.videos : [],
         gallery: Array.isArray(data.gallery) ? data.gallery : [],
         thumbnail: data.thumbnail || "",
-        slug: slugify(data.name || "", { lower: true }),
+        slug: toSlug(data.name || ""),
         attributes: Array.isArray(data.attributes) ? data.attributes : [],
         meta: {
           title: data.meta?.title || "",
@@ -831,7 +789,7 @@ const bulkUploadJsonToDB = async (
     console.error("Failed to store bulk upload history:", err);
   }
 
-  refreshProductsCache();
+  invalidateProductCache();
 
   const result: TBulkUploadData = {
     withError,
@@ -935,6 +893,10 @@ const updateProductIntoDB = async (
     throw new AppError(httpStatus.FORBIDDEN, "Please provide product id");
   }
 
+  if (payload.slug !== undefined && !isValidSlug(String(payload.slug))) {
+    throw new AppError(httpStatus.BAD_REQUEST, SLUG_ERROR);
+  }
+
   const exist = await Product.findById(id);
 
   if (!exist) {
@@ -943,7 +905,7 @@ const updateProductIntoDB = async (
 
   const result = await Product.findByIdAndUpdate(id, payload, { new: true });
 
-  refreshSingleProductCache(result?._id);
+  invalidateProductCache();
 
   if (result) {
     if (!thisUser || !thisUser._id) {
@@ -1142,19 +1104,11 @@ const getSearchProductsFromDB = async (query: Record<string, unknown>) => {
     brandFilters["$and"] = [{ isDeleted: false }, { isActive: true }];
   }
 
-  const redisProducts = await getProductsFromRedis();
-
-  let products: TProduct[] = [];
-
-  if (!redisProducts || redisProducts?.length === 0) {
-    products = await Product.find(filters)
-      .select("slug _id name thumbnail")
-      .sort(sort)
-      .limit(15);
-  } else {
-    const filterProducts = redisProducts.filter(sift(filters));
-    products = filterProducts.slice(0, 15);
-  }
+  const products = await Product.find(filters)
+    .select("slug _id name thumbnail")
+    .sort(sort)
+    .limit(15)
+    .lean();
 
   let categories: TCategory[] = [];
 
@@ -1182,9 +1136,11 @@ const getSearchProductsFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getStaticProductSlugsFromDB = async () => {
-  const result = await Product.find({ sort: { createdAt: -1 } })
+  const result = await Product.find({ isDeleted: false, isPublished: true })
+    .sort({ createdAt: -1 })
     .limit(500)
-    .select("slug");
+    .select("slug")
+    .lean();
 
   return result;
 };
@@ -1282,22 +1238,89 @@ const getPcBuilderProductsFromDB = async (
   };
 };
 
+const MAX_STOREFRONT_LIMIT = 100;
+
+const positiveInt = (value: unknown, max?: number) => {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n < 1) {
+    return undefined;
+  }
+  return String(max ? Math.min(n, max) : n);
+};
+
+// Only params a storefront endpoint reads go into its cache key, so junk params cannot multiply keys.
+const storefrontQuery = (
+  query: Record<string, unknown>,
+  allowed: string[],
+) => {
+  const picked: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (query[key] !== undefined) {
+      picked[key] = query[key];
+    }
+  }
+  if ("page" in picked) {
+    picked.page = positiveInt(picked.page);
+  }
+  if ("limit" in picked) {
+    picked.limit = positiveInt(picked.limit, MAX_STOREFRONT_LIMIT);
+  }
+  if (typeof picked.search === "string") {
+    picked.search = picked.search.trim().toLowerCase();
+  }
+  return picked;
+};
+
 export const ProductServices = {
   createProductIntoDB,
   getAllProductsFromDB,
   bulkUploadToDB,
   getSingleProductFromDB,
   updateProductIntoDB,
-  getFeaturedProductFromDB,
-  getNewArrivalsFromDB,
-  getBestSellersFromDB,
-  getProductsByBrandFromDB,
-  getProductByCategoryFromDB,
-  getSingleProductBySlugFromDB,
-  getSearchProductsFromDB,
+  getFeaturedProductFromDB: (queryLimit?: string) => {
+    const limit = positiveInt(queryLimit, MAX_STOREFRONT_LIMIT);
+    return cached("featured", { limit }, LIST_TTL, () =>
+      getFeaturedProductFromDB(limit),
+    );
+  },
+  getNewArrivalsFromDB: (queryLimit?: string) => {
+    const limit = positiveInt(queryLimit, MAX_STOREFRONT_LIMIT);
+    return cached("newArrivals", { limit }, LIST_TTL, () =>
+      getNewArrivalsFromDB(limit),
+    );
+  },
+  getBestSellersFromDB: (queryLimit?: string) => {
+    const limit = positiveInt(queryLimit, MAX_STOREFRONT_LIMIT);
+    return cached("bestSellers", { limit }, LIST_TTL, () =>
+      getBestSellersFromDB(limit),
+    );
+  },
+  getProductsByBrandFromDB: (brandId: string, query: Record<string, unknown>) => {
+    const q = storefrontQuery(query, ["page", "limit"]);
+    return cached("brand", { ...q, brandId }, LIST_TTL, () =>
+      getProductsByBrandFromDB(brandId, q),
+    );
+  },
+  getProductByCategoryFromDB: (slug: string, query: Record<string, unknown>) => {
+    const q = storefrontQuery(query, ["page", "limit", "filter"]);
+    return cached("category", { ...q, slug }, LIST_TTL, () =>
+      getProductByCategoryFromDB(slug, q),
+    );
+  },
+  getSingleProductBySlugFromDB: (slug: string) =>
+    cached("slug", { slug }, PRODUCT_TTL, () =>
+      getSingleProductBySlugFromDB(slug),
+    ),
+  getSearchProductsFromDB: (query: Record<string, unknown>) => {
+    const q = storefrontQuery(query, ["search", "getFrom"]);
+    return cached("search", q, LIST_TTL, () => getSearchProductsFromDB(q));
+  },
   downloadJsonTemplate,
   getStaticProductSlugsFromDB,
   bulkUploadJsonToDB,
   getPcBuilderProductsFromDB,
-  getFiltersByCategoryFromDB,
+  getFiltersByCategoryFromDB: (slug: string) =>
+    cached("filters", { slug }, PRODUCT_TTL, () =>
+      getFiltersByCategoryFromDB(slug),
+    ),
 };

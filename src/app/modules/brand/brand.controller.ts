@@ -53,6 +53,17 @@ const getStorefrontBrands = catchAsync(async (req, res) => {
   });
 });
 
+const getStaticBrandIds = catchAsync(async (req, res) => {
+  const result = await BrandService.getStaticBrandIdsFromDB();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Brand ids retrived successfully",
+    data: result,
+  });
+});
+
 const deleteBrand = catchAsync(async (req, res) => {
   const id = req.params.id;
   const { userData } = req.user;
@@ -72,5 +83,6 @@ export const BrandController = {
   updateBrand,
   getAllBrands,
   getStorefrontBrands,
+  getStaticBrandIds,
   deleteBrand,
 };

@@ -26,4 +26,5 @@ export default {
   stripe_publishe_key: process.env.STRIPE_PUBLISH_KEY,
   stripe_enpoint_secret: process.env.STRIPE_ENDPOINT_SECRET,
   meta_pixel_encryption_key: process.env.META_PIXEL_ENCRYPTION_KEY,
+  revalidate_secret: process.env.REVALIDATE_SECRET,
 };

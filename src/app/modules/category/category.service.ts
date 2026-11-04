@@ -10,16 +10,15 @@ import {
   sendSourceSocket,
   TSendSourceSocket,
 } from "../../utils/sendSourceSocket";
-import slugify from "slugify";
+import { toSlug } from "../../utils/slug";
 import { TUser } from "../user/user.interface";
 import { Product } from "../product/product.model";
+import { invalidateProductCache } from "../../utils/productCache";
 
 const createCategoryIntoDB = async (payload: TCategory, admin: TUser) => {
   const parent_id = payload.parent_id || null;
 
-  const slug = payload.slug?.trim() || slugify(payload.name).trim();
-
-  console.log({ payload });
+  const slug = payload.slug?.trim() || toSlug(payload.name);
 
   const exist = await Category.findOne({
     slug,
@@ -31,6 +30,8 @@ const createCategoryIntoDB = async (payload: TCategory, admin: TUser) => {
   }
 
   const result = await Category.create({ ...payload, parent_id, slug });
+
+  invalidateProductCache();
 
   if (result) {
     const eventPayload: TSendSourceSocket<typeof result> = {
@@ -88,6 +89,8 @@ const deleteCategoryFromDB = async (id: string, admin: TUser) => {
   if (exist) {
     const result = await Category.findByIdAndUpdate(id, { isDeleted: true });
 
+    invalidateProductCache();
+
     const eventPayload: TSendSourceSocket<typeof result> = {
       payload: {
         data: result,
@@ -130,7 +133,7 @@ const updateCategoryIntoDB = async (
       { new: true },
     );
 
-    console.log(payload);
+    invalidateProductCache();
 
     if (!update) {
       throw new AppError(httpStatus.CONFLICT, "Failed to update category");
@@ -189,9 +192,11 @@ const getSingleCategoryFromDB = async (id: string) => {
 };
 
 const getStaticCategorySlugsFromDB = async () => {
-  const result = await Category.find({ sort: { createdAt: -1 } })
+  const result = await Category.find({ isDeleted: false })
+    .sort({ createdAt: -1 })
     .limit(500)
-    .select("slug");
+    .select("slug")
+    .lean();
   return result;
 };
 
