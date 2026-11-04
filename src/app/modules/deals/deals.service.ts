@@ -1,7 +1,7 @@
 import mongoose, { Types } from "mongoose";
 import { IDeal } from "./deals.interface";
 import Deal from "./deals.model";
-import redisClient from "../../../redis";
+import { getCache } from "../../../redis";
 import { RedisKeys } from "../../interface/common";
 import { TProduct } from "../product/product.interface";
 import { Product } from "../product/product.model";
@@ -9,9 +9,9 @@ import { ObjectId } from "mongodb";
 import { setProductsToRedis } from "../product/product.redis";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
-import { DealJobName, dealQueue } from "./deal.queue";
+import { refreshDealsCache } from "./deal.queue";
 import sift from "sift";
-import { ProductJobName, productQueue } from "../product/product.queue";
+import { refreshProductsCache } from "../product/product.queue";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
@@ -36,7 +36,7 @@ const createDealToDb = async (data: Partial<IDeal>, user: Types.ObjectId) => {
 
   const result = await Deal.create(payload);
 
-  await dealQueue.add(DealJobName.updateAllDeals, {});
+  refreshDealsCache();
 
   return result;
 };
@@ -75,7 +75,7 @@ const addProductsToDealToDB = async (
   const products: IDeal["products"] = [];
   let notFoundProducts = 0;
 
-  const redisData = await redisClient.get(RedisKeys.products);
+  const redisData = await getCache(RedisKeys.products);
 
   if (redisData !== null) {
     const redisProducts = JSON.parse(redisData);
@@ -119,8 +119,8 @@ const addProductsToDealToDB = async (
     { new: true }
   );
 
-  await dealQueue.add(DealJobName.updateAllDeals, {});
-  await productQueue.add(ProductJobName.updateAllProducts, {});
+  refreshDealsCache();
+  refreshProductsCache();
 
   return {
     products: result?.products,
@@ -144,7 +144,7 @@ const getAllDealsFromDB = async (query: {
     seachQuery["title"] = { $regex: query.search, $options: "i" };
   }
 
-  const catchData = await redisClient.get(RedisKeys.deals);
+  const catchData = await getCache(RedisKeys.deals);
   let total = 0;
   let result: IDeal[] = [];
   if (catchData !== null) {
@@ -182,7 +182,7 @@ const getAllDealsFromDB = async (query: {
 
     total = Number(Deal.countDocuments(seachQuery));
 
-    await dealQueue.add(DealJobName.updateAllDeals, {});
+    refreshDealsCache();
   }
 
   return {
@@ -295,14 +295,14 @@ const updateDealToDB = async (
 
   let deal: IDeal | null;
 
-  const redisDeals = await redisClient.get(RedisKeys.deals);
+  const redisDeals = await getCache(RedisKeys.deals);
 
   if (redisDeals !== null) {
     const deals = JSON.parse(redisDeals);
     deal = deals.find((d: IDeal) => d._id.toString() === id);
   } else {
     deal = await Deal.findById(id);
-    await dealQueue.add(DealJobName.updateAllDeals, {});
+    refreshDealsCache();
   }
 
   if (!deal) {
@@ -372,7 +372,7 @@ const updateDealToDB = async (
     { new: true }
   );
 
-  await dealQueue.add(DealJobName.updateAllDeals, {});
+  refreshDealsCache();
 
   return result;
 };

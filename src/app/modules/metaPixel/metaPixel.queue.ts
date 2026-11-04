@@ -6,12 +6,12 @@ import MetaPixelEventLog from "./metaPixelEventLog.model";
 import { MetaPixelService } from "./metaPixel.service";
 import { sendToMeta } from "./metaPixel.sender";
 import { TSentEventStatus } from "./metaPixel.interface";
-
-const redisConnection = {
-  connection: {
-    url: process.env.REDIS_URL,
-  },
-};
+import {
+  addJob,
+  logWorkerErrors,
+  queueOptions,
+  workerOptions,
+} from "../../queues/queue.config";
 
 export type TMetaEventJob = {
   logId: string;
@@ -22,7 +22,7 @@ export type TMetaEventJob = {
 
 export const metaPixelQueue = new Queue(
   RedisKeys.metaPixelEvents,
-  redisConnection,
+  queueOptions,
 );
 
 const updateLedger = async (
@@ -67,7 +67,7 @@ const updateLedger = async (
 
 export const enqueueMetaEvent = async (job: TMetaEventJob) => {
   try {
-    await metaPixelQueue.add(RedisKeys.metaPixelEvents, job, {
+    await addJob(metaPixelQueue, RedisKeys.metaPixelEvents, job, {
       attempts: 5,
       backoff: { type: "exponential", delay: 60000 },
       removeOnComplete: 1000,
@@ -140,8 +140,10 @@ const metaPixelWorker = new Worker(
       throw new Error(result.errorMessage ?? "Meta send failed");
     }
   },
-  redisConnection,
+  workerOptions,
 );
+
+logWorkerErrors(metaPixelWorker);
 
 metaPixelWorker.on("failed", async (job, err) => {
   if (!job) {

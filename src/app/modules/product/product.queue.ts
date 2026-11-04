@@ -2,18 +2,25 @@ import { Queue, Worker } from "bullmq";
 import { RedisKeys } from "../../interface/common";
 import { setProductsToRedis, updateSigleProductToRedis } from "./product.redis";
 import { Types } from "mongoose";
+import {
+  enqueueInBackground,
+  logWorkerErrors,
+  queueOptions,
+  workerOptions,
+} from "../../queues/queue.config";
 
-const redisConnection = {
-  connection: {
-    url: process.env.REDIS_URL, // ✅ use Railway's Redis URL
-  },
-};
 export enum ProductJobName {
   updateAllProducts = "updateAllProducts",
   updateSingleProduct = "updateSingleProduct",
 }
 
-export const productQueue = new Queue(RedisKeys.products, redisConnection);
+export const productQueue = new Queue(RedisKeys.products, queueOptions);
+
+export const refreshProductsCache = () =>
+  enqueueInBackground(productQueue, ProductJobName.updateAllProducts);
+
+export const refreshSingleProductCache = (id: unknown) =>
+  enqueueInBackground(productQueue, ProductJobName.updateSingleProduct, id);
 
 const productWorker = new Worker(
   RedisKeys.products,
@@ -31,8 +38,10 @@ const productWorker = new Worker(
       );
     }
   },
-  redisConnection
+  workerOptions
 );
+
+logWorkerErrors(productWorker);
 
 productWorker.on("completed", (job) => {
   console.log(`Job ${job.id} completed!`);

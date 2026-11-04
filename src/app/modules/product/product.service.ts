@@ -44,7 +44,10 @@ import { TBrand } from "../brand/brand.interface";
 import { TCategory } from "../category/category.interface";
 import { getProductsFromRedis } from "./product.redis";
 import sift from "sift";
-import { ProductJobName, productQueue } from "./product.queue";
+import {
+  refreshProductsCache,
+  refreshSingleProductCache,
+} from "./product.queue";
 import { TProductDetailsCategory } from "../productDetailsCategory/productDetailsCategory.interface";
 import Settings from "../settings/settings.model";
 
@@ -177,7 +180,7 @@ const getAllProductsFromDB = async (query: Record<string, unknown>) => {
 
     pagination.total = productQuery.total;
 
-    await productQueue.add(ProductJobName.updateAllProducts, {});
+    refreshProductsCache();
   } else {
     const siftQuery: Record<string, any> = {};
 
@@ -599,7 +602,7 @@ const bulkUploadToDB = async (
     // throw new AppError(httpStatus.CONFLICT, 'Failed to store bulk upload history')
   }
 
-  await productQueue.add(ProductJobName.updateAllProducts, {});
+  refreshProductsCache();
 
   const result: TBulkUploadData = {
     withError,
@@ -828,7 +831,7 @@ const bulkUploadJsonToDB = async (
     console.error("Failed to store bulk upload history:", err);
   }
 
-  await productQueue.add(ProductJobName.updateAllProducts, {});
+  refreshProductsCache();
 
   const result: TBulkUploadData = {
     withError,
@@ -940,7 +943,7 @@ const updateProductIntoDB = async (
 
   const result = await Product.findByIdAndUpdate(id, payload, { new: true });
 
-  await productQueue.add(ProductJobName.updateSingleProduct, result?._id);
+  refreshSingleProductCache(result?._id);
 
   if (result) {
     if (!thisUser || !thisUser._id) {

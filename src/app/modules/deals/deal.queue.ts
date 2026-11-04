@@ -1,28 +1,33 @@
 import { Queue, Worker } from "bullmq";
 import { RedisKeys } from "../../interface/common";
 import { setDealsToRedis } from "./deal.redis";
+import {
+  enqueueInBackground,
+  logWorkerErrors,
+  queueOptions,
+  workerOptions,
+} from "../../queues/queue.config";
 
 export enum DealJobName {
   updateAllDeals = "updateAllDeals",
 }
 
-const redisConnection = {
-  connection: {
-    url: process.env.REDIS_URL,
-  },
-};
+export const dealQueue = new Queue(RedisKeys.deals, queueOptions);
 
-export const dealQueue = new Queue(RedisKeys.deals, redisConnection);
+export const refreshDealsCache = () =>
+  enqueueInBackground(dealQueue, DealJobName.updateAllDeals);
 
 const dealWorker = new Worker(
   RedisKeys.deals,
   async (job) => {
-    if ((job.name = DealJobName.updateAllDeals)) {
+    if (job.name === DealJobName.updateAllDeals) {
       await setDealsToRedis();
     }
   },
-  redisConnection
+  workerOptions,
 );
+
+logWorkerErrors(dealWorker);
 
 dealWorker.on("completed", (job) => {
   console.log(`Deal Job ${job.id} completed!`);

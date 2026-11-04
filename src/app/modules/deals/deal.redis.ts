@@ -1,4 +1,4 @@
-import redisClient from "../../../redis";
+import redisClient, { getCache } from "../../../redis";
 import { RedisKeys } from "../../interface/common";
 import { IDeal } from "./deals.interface";
 import Deal from "./deals.model";
@@ -41,7 +41,7 @@ export const setDealsToRedis = async () => {
 export const updateSingleDealInRedis = async (id: string) => {
   let deal: IDeal | null;
 
-  const catchData = await redisClient.get(RedisKeys.deals);
+  const catchData = await getCache(RedisKeys.deals);
   if (catchData !== null) {
     deal = JSON.parse(catchData)?.find((d: IDeal) => d._id.toString() === id);
   } else {

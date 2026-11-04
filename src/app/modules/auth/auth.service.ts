@@ -10,6 +10,7 @@ import mongoose, { Types } from "mongoose";
 import { TUser } from "../user/user.interface";
 import jwt, { JwtPayload, TokenExpiredError } from "jsonwebtoken";
 import { EmailJobName, emailQueue } from "../../queues/email.queue";
+import { addJob } from "../../queues/queue.config";
 
 const generateOTP = () => {
   // Declare a digits variable
@@ -194,7 +195,7 @@ const forgotPasswordService = async (email: string) => {
 
   await User.findByIdAndUpdate(user._id, { otp: otpToken });
 
-  await emailQueue.add(EmailJobName.sendResetPasswordEmail, {
+  await addJob(emailQueue, EmailJobName.sendResetPasswordEmail, {
     user,
     opt: otpCode,
   });
@@ -280,7 +281,7 @@ const SendVerificationEmailService = async (email: string) => {
 
   await User.findByIdAndUpdate(user._id, { otp: otpToken });
 
-  await emailQueue.add(EmailJobName.sendVerificationEmail, {
+  await addJob(emailQueue, EmailJobName.sendVerificationEmail, {
     user,
     opt: otpCode,
   });
@@ -459,7 +460,7 @@ const createCustomerIntoDB = async (customer: TUser) => {
       throw new AppError(httpStatus.CONFLICT, "failed to register account");
     }
 
-    await emailQueue.add(EmailJobName.sendVerificationEmail, {
+    await addJob(emailQueue, EmailJobName.sendVerificationEmail, {
       opt: otpCode,
       user,
     });
