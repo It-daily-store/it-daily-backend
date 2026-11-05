@@ -14,9 +14,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const run = async () => {
   const { createServer } = await import("node:http");
   let revalidatePosts = 0;
+  const bodies: string[] = [];
   const storefront = createServer((req, res) => {
-    if (req.headers["x-revalidate-secret"] === "test-secret") revalidatePosts++;
-    res.end("{}");
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      if (req.headers["x-revalidate-secret"] === "test-secret") {
+        revalidatePosts++;
+        bodies.push(body);
+      }
+      res.end("{}");
+    });
   }).listen(6499);
 
   const { default: redisClient } = await import("../redis");
@@ -92,6 +100,15 @@ const run = async () => {
   await sleep(3000);
   assert.equal(revalidatePosts, 2, `expected 2 revalidate calls, got ${revalidatePosts}`);
   ok("storefront revalidated twice to cover in-flight renders");
+  assert.deepEqual(JSON.parse(bodies[bodies.length - 1]), { tags: ["products"] });
+  ok("product invalidation revalidates the products tag");
+
+  const { revalidateStorefront } = await import("../app/utils/storefront");
+  bodies.length = 0;
+  revalidateStorefront(["banner"]);
+  await sleep(500);
+  assert.deepEqual(JSON.parse(bodies[0]), { tags: ["banner"] });
+  ok("banner changes revalidate the banner tag");
 
   storefront.close();
   redisClient.disconnect();

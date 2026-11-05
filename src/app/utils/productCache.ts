@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import config from "../config";
 import redisClient, { getCache } from "../../redis";
+import { revalidateStorefront } from "./storefront";
 
 const VERSION_KEY = "cache:products:ver";
 
@@ -73,28 +73,6 @@ export const cached = async <T>(
   return result;
 };
 
-const REVALIDATE_RETRY_DELAY = 1500;
-
-const revalidateStorefront = () => {
-  if (!config.client_url || !config.revalidate_secret) {
-    return;
-  }
-
-  fetch(`${config.client_url}/api/revalidate`, {
-    method: "POST",
-    headers: { "x-revalidate-secret": config.revalidate_secret },
-    signal: AbortSignal.timeout(3000),
-  })
-    .then((res) => {
-      if (!res.ok) {
-        console.error(`Storefront revalidation returned ${res.status}`);
-      }
-    })
-    .catch((err) =>
-      console.error(`Storefront revalidation failed: ${errorMessage(err)}`),
-    );
-};
-
 export const invalidateProductCache = () => {
   redisClient
     .incr(VERSION_KEY)
@@ -102,7 +80,5 @@ export const invalidateProductCache = () => {
       console.error(`Product cache invalidation failed: ${errorMessage(err)}`),
     );
 
-  revalidateStorefront();
-  // A storefront render that fetched before the write can finish after the first revalidation and re-store old data.
-  setTimeout(revalidateStorefront, REVALIDATE_RETRY_DELAY).unref();
+  revalidateStorefront(["products"]);
 };

@@ -3,6 +3,7 @@ import AppError from "../../errors/AppError";
 import { BannerTemplate } from "./banner.model";
 import { TBannerBreakpoint, TBannerTemplate, TBreakpointName } from "./banner.interface";
 import { TUser } from "../user/user.interface";
+import { revalidateStorefront } from "../../utils/storefront";
 
 const slugify = (input: string) =>
   input
@@ -145,14 +146,23 @@ const deleteTemplateFromDB = async (id: string) => {
   );
 };
 
+// The storefront caches the active banner, so any write that can change what it shows refreshes it.
+const refreshesStorefront =
+  <A extends unknown[], R>(fn: (...args: A) => Promise<R>) =>
+  async (...args: A) => {
+    const result = await fn(...args);
+    revalidateStorefront(["banner"]);
+    return result;
+  };
+
 export const BannerTemplateServices = {
-  createTemplateIntoDB,
+  createTemplateIntoDB: refreshesStorefront(createTemplateIntoDB),
   getAllTemplatesFromDB,
   getTemplateByIdFromDB,
   getActiveTemplateFromDB,
-  setActiveTemplateInDB,
-  updateTemplateIntoDB,
+  setActiveTemplateInDB: refreshesStorefront(setActiveTemplateInDB),
+  updateTemplateIntoDB: refreshesStorefront(updateTemplateIntoDB),
   renameTemplateIntoDB,
   duplicateTemplateIntoDB,
-  deleteTemplateFromDB,
+  deleteTemplateFromDB: refreshesStorefront(deleteTemplateFromDB),
 };
