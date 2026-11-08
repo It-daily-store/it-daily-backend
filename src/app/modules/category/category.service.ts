@@ -13,7 +13,11 @@ import {
 import { toSlug } from "../../utils/slug";
 import { TUser } from "../user/user.interface";
 import { Product } from "../product/product.model";
-import { invalidateProductCache } from "../../utils/productCache";
+import {
+  cached,
+  invalidateProductCache,
+  PRODUCT_TTL,
+} from "../../utils/productCache";
 
 const createCategoryIntoDB = async (payload: TCategory, admin: TUser) => {
   const parent_id = payload.parent_id || null;
@@ -217,90 +221,65 @@ const getDataForSitemapFromDB = async () => {
 };
 
 const getCatgoryDataBySlugFromDB = async (slug: string) => {
-  const catExist = await Category.findOne({ slug, isDeleted: false }).select(
-    "_id slug name description",
-  );
+  const allCategories = await Category.find({ isDeleted: false })
+    .select("_id name slug parent_id image description")
+    .lean();
+
+  const catExist = allCategories.find((c) => c.slug === slug);
   if (!catExist) {
     throw new AppError(httpStatus.CONFLICT, "Category does not exist");
   }
 
-  const allCategories = await Category.find()
-    .select("_id name slug parent_id image")
-    .lean()
-    .exec();
-  const categoryMap = new Map(allCategories.map((c) => [c._id.toString(), c]));
-
-  // Function to build category tree using pre-fetched categories
-  const buildCategoryTree = (categoryId: string) => {
-    const tree = [];
-
-    let currentId = categoryId?.toString();
-    while (currentId && categoryMap.has(currentId)) {
-      const category = categoryMap.get(currentId);
-      if (category) {
-        tree.unshift({
-          _id: category._id,
-          name: category.name,
-          slug: category.slug,
-        });
-        currentId = category.parent_id?.toString();
-      }
+  const byId = new Map(allCategories.map((c) => [c._id.toString(), c]));
+  const childrenOf = new Map<string, typeof allCategories>();
+  for (const c of allCategories) {
+    const parentId = c.parent_id?.toString();
+    if (parentId) {
+      childrenOf.set(parentId, [...(childrenOf.get(parentId) ?? []), c]);
     }
+  }
 
-    // Log warning if a category or parent was not found
-    if (currentId && !categoryMap.has(currentId)) {
-      console.warn(`Parent category not found for ID: ${currentId}`);
-    }
+  const categoryTree = [];
+  const seenAncestors = new Set<string>();
+  let currentId: string | undefined = catExist._id.toString();
+  while (currentId && !seenAncestors.has(currentId) && byId.has(currentId)) {
+    seenAncestors.add(currentId);
+    const category: (typeof allCategories)[number] = byId.get(currentId)!;
+    categoryTree.unshift({
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+    });
+    currentId = category.parent_id?.toString();
+  }
 
-    return tree;
-  };
+  const childTree = [];
+  const visited = new Set<string>([catExist._id.toString()]);
+  const queue = [...(childrenOf.get(catExist._id.toString()) ?? [])];
+  while (queue.length > 0) {
+    const category = queue.shift()!;
+    const id = category._id.toString();
+    if (visited.has(id)) continue;
+    visited.add(id);
+    childTree.push({
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+      image: category.image,
+    });
+    queue.push(...(childrenOf.get(id) ?? []));
+  }
 
-  const buildChildTree = (categoryId: string) => {
-    const tree = [];
-    const queue = [categoryId?.toString()];
-    const visited = new Set();
-
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      if (!currentId || visited.has(currentId)) continue;
-      visited.add(currentId);
-
-      const category = categoryMap.get(currentId);
-      if (!category) {
-        console.warn(`Child category not found for ID: ${currentId}`);
-        continue;
-      }
-
-      if (category._id.toString() !== catExist._id.toString()) {
-        tree.push({
-          _id: category._id,
-          name: category.name,
-          slug: category.slug,
-          image: category.image,
-          description: category?.description,
-        });
-      }
-
-      // Find all children of the current category
-      const children = allCategories.filter(
-        (c) => c.parent_id?.toString() === currentId,
-      );
-      queue.push(...children.map((c) => c._id.toString()));
-    }
-
-    return tree;
-  };
-
-  const categoryTree = buildCategoryTree(catExist._id.toString());
-  const childTree = buildChildTree(catExist._id.toString());
-
-  const data = {
+  return {
     categoryTree,
     childTree,
-    category: catExist,
+    category: {
+      _id: catExist._id,
+      slug: catExist.slug,
+      name: catExist.name,
+      description: catExist.description,
+    },
   };
-
-  return data;
 };
 
 export const CategoryServices = {
@@ -312,5 +291,8 @@ export const CategoryServices = {
   getFeaturedCategoriesFromDB,
   getStaticCategorySlugsFromDB,
   getDataForSitemapFromDB,
-  getCatgoryDataBySlugFromDB,
+  getCatgoryDataBySlugFromDB: (slug: string) =>
+    cached("categoryBySlug", { slug }, PRODUCT_TTL, () =>
+      getCatgoryDataBySlugFromDB(slug),
+    ),
 };
