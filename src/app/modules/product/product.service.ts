@@ -1002,16 +1002,27 @@ const getProductsByBrandFromDB = async (
   return { result: { brand, products }, pagination };
 };
 
+// $ne rather than equality so older documents written before these fields existed still match.
+const STOREFRONT_VISIBLE = {
+  isDeleted: { $ne: true },
+  isPublished: { $ne: false },
+};
+
+const findStorefrontCategory = async (slug: string) => {
+  const category = await Category.findOne({ slug, isDeleted: false })
+    .select("_id slug name description")
+    .lean();
+  if (!category) {
+    throw new AppError(httpStatus.CONFLICT, "Category does not exist");
+  }
+  return category;
+};
+
 const getProductByCategoryFromDB = async (
   slug: string,
   query: Record<string, unknown>,
 ) => {
-  const catExist = await Category.findOne({ slug, isDeleted: false }).select(
-    "_id slug name description",
-  );
-  if (!catExist) {
-    throw new AppError(httpStatus.CONFLICT, "Category does not exist");
-  }
+  const catExist = await findStorefrontCategory(slug);
 
   const parsedFilters: ParsedFilters = parseFilters(query.filter as any);
 
@@ -1021,66 +1032,71 @@ const getProductByCategoryFromDB = async (
     limit: query.limit ? Number(query.limit) : 10,
   };
 
-  const categoryQuery = buildProductQuery(
-    catExist._id.toString(),
-    parsedFilters,
-  );
+  const categoryQuery = {
+    ...buildProductQuery(catExist._id.toString(), parsedFilters),
+    ...STOREFRONT_VISIBLE,
+  };
 
-  // Get paginated products
-  const products = await Product.find(categoryQuery)
-    .select("price discount name quantity thumbnail slug shipping")
-    .skip((pagination.currentPage - 1) * pagination.limit)
-    .limit(pagination.limit)
-    .lean();
-
-  const total = await Product.countDocuments(categoryQuery);
+  const [products, total] = await Promise.all([
+    Product.find(categoryQuery)
+      .select("price discount name quantity thumbnail slug shipping")
+      .skip((pagination.currentPage - 1) * pagination.limit)
+      .limit(pagination.limit)
+      .lean(),
+    Product.countDocuments(categoryQuery),
+  ]);
 
   pagination.total = total;
 
-  const data = {
-    products,
-    category: catExist,
-  };
-
   return {
-    result: data,
+    result: { products, category: catExist },
     pagination,
   };
 };
 
 const getFiltersByCategoryFromDB = async (slug: string) => {
-  const catExist = await Category.findOne({ slug, isDeleted: false }).select(
-    "_id slug name description",
-  );
+  const catExist = await findStorefrontCategory(slug);
 
-  if (!catExist) {
-    throw new AppError(httpStatus.CONFLICT, "Category does not exist");
-  }
+  const [facet] = await Product.aggregate<{
+    productCount: { n: number }[];
+    usage: { _id: string; count: number; firstSeen: unknown }[];
+  }>([
+    {
+      $match: { "category.id": catExist._id.toString(), ...STOREFRONT_VISIBLE },
+    },
+    {
+      $facet: {
+        productCount: [{ $count: "n" }],
+        usage: [
+          { $unwind: { path: "$filters", includeArrayIndex: "pos" } },
+          {
+            $group: {
+              _id: "$filters.filter",
+              count: { $sum: 1 },
+              // Ties break on the oldest product using the filter, then its position there, so the order is stable.
+              firstSeen: { $min: { product: "$_id", pos: "$pos" } },
+            },
+          },
+          { $sort: { count: -1, firstSeen: 1 } },
+        ],
+      },
+    },
+  ]);
 
-  const allCategoryProducts = await Product.find({
-    "category.id": catExist._id,
-  })
-    .select("filters")
-    .lean();
+  const productCount = facet?.productCount[0]?.n ?? 0;
+  // Only filters used by at least 10% of the category's products are offered.
+  const threshold = Math.max(1, Math.floor(productCount * 0.1));
 
-  const commonFilters = extractCommonFilters(allCategoryProducts);
+  const filterIds = (facet?.usage ?? [])
+    .filter((u) => u.count >= threshold && mongoose.isValidObjectId(u._id))
+    .map((u) => String(u._id));
 
-  const filters = [];
-
-  for (const filter of commonFilters) {
-    const data = await ProductFilter.findById(filter.filter);
-    if (data) {
-      filters.push(data);
-    }
-  }
-
-  const data = {
-    filters,
-    category: catExist,
-  };
+  const found = await ProductFilter.find({ _id: { $in: filterIds } }).lean();
+  const byId = new Map(found.map((f) => [f._id.toString(), f]));
+  const filters = filterIds.flatMap((id) => byId.get(id) ?? []);
 
   return {
-    result: data,
+    result: { filters, category: catExist },
   };
 };
 
@@ -1249,10 +1265,7 @@ const positiveInt = (value: unknown, max?: number) => {
 };
 
 // Only params a storefront endpoint reads go into its cache key, so junk params cannot multiply keys.
-const storefrontQuery = (
-  query: Record<string, unknown>,
-  allowed: string[],
-) => {
+const storefrontQuery = (query: Record<string, unknown>, allowed: string[]) => {
   const picked: Record<string, unknown> = {};
   for (const key of allowed) {
     if (query[key] !== undefined) {
@@ -1295,13 +1308,19 @@ export const ProductServices = {
       getBestSellersFromDB(limit),
     );
   },
-  getProductsByBrandFromDB: (brandId: string, query: Record<string, unknown>) => {
+  getProductsByBrandFromDB: (
+    brandId: string,
+    query: Record<string, unknown>,
+  ) => {
     const q = storefrontQuery(query, ["page", "limit"]);
     return cached("brand", { ...q, brandId }, LIST_TTL, () =>
       getProductsByBrandFromDB(brandId, q),
     );
   },
-  getProductByCategoryFromDB: (slug: string, query: Record<string, unknown>) => {
+  getProductByCategoryFromDB: (
+    slug: string,
+    query: Record<string, unknown>,
+  ) => {
     const q = storefrontQuery(query, ["page", "limit", "filter"]);
     return cached("category", { ...q, slug }, LIST_TTL, () =>
       getProductByCategoryFromDB(slug, q),

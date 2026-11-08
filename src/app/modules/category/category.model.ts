@@ -39,9 +39,10 @@ const CategorySchema = new Schema<TCategory>(
     image: { type: String, default: "" },
     description: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 CategorySchema.index({ name: 1 });
+CategorySchema.index({ slug: 1, isDeleted: 1 });
 
 export const Category = model<TCategory>("Category", CategorySchema);

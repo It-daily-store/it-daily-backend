@@ -1,9 +1,5 @@
 import { model, Schema } from "mongoose";
-import {
-  TMeta,
-  TProduct,
-  TProductCategory,
-} from "./product.interface";
+import { TMeta, TProduct, TProductCategory } from "./product.interface";
 
 const ProductCategorySchema = new Schema<TProductCategory>({
   main: {
@@ -135,20 +131,21 @@ const ProductSchema = new Schema<TProduct>(
       },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 ProductSchema.index({ name: 1 });
 ProductSchema.index({ sku: 1 });
 ProductSchema.index({ model: 1 });
 ProductSchema.index({ slug: 1 });
+ProductSchema.index({ "category.id": 1, isDeleted: 1, isPublished: 1 });
 
 ProductSchema.index(
   {
     name: "text",
     model: "text",
   },
-  { weights: { name: 10, model: 2 } }
+  { weights: { name: 10, model: 2 } },
 );
 
 export const Product = model<TProduct>("Product", ProductSchema);
